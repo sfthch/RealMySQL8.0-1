@@ -506,6 +506,8 @@
        |            1 |                  1 | file://component_validate_password |
        +--------------+--------------------+------------------------------------+
        - 플러그인과 마찬가지로 컴포넌트도 설치하면 새로운 시스템 변수를 설정해야 할 수도 있으니 관련 매뉴얼을 보자.
+       - 삭제 후 다시 설치 가능
+         mysql> UNINSTALL COMPONENT 'file://component_validate_password';
 
 
 -- 쿼리 실행 구조
