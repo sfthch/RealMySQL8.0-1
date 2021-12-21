@@ -798,6 +798,39 @@
    - foreign_key_checks 가 OFF 인 상태에서는 부모 테이블에 걸려있는 ON DELETE CASECADE 와 ON UPDATE CASECADE 옵션도 무시함.
 
 
+-- MVCC(Multi Version Concurrency Control)
+
+   - 레코드 레벨의 트랜잭션을 지원한는 DBMS가 제공하며 락을 발생하지 않고 데이터 읽을 수 있도록 InnoDB는 언두 로그(Undo log)를 사용.
+   - 멀티 버전이라는 것은 하나의 레코드에 대해서 여러 개의 버전이 동시에 관리.
+   - 새로운 데이터를 넣거나 기존의 데이터를 변경한 후에 COMMIT이나 ROLLBACK이 되지 않은 상태에서 다른 사용자가
+     작업중인 테이터를 조회 한다면 InnoDB 스토리지 엔진을 사용하는 테이블의 데이터 변경에 대한 격리 수준(Isolation level)이
+     READ_UNCOMMITTED 이라면 InnoDB 버퍼 풀이나 데이터 파일로 부터 데이터를 읽어서 변경된 데이터를 조회하게 되며 그러나
+     격리 수준(Isolation level)이 READ_COMMITTED / REPEATABLE-READ / SERIALIZABLE 인 경우에는 COMMIT이 되지 않았다면
+     버퍼 풀이나 데이터 파일에서 읽는 것이 아니라 언두 로그(Undo log)에서 변경 전의 데이터를 읽어서 조회 하도록 한다.
+
+     SHOW VARIABLES LIKE '%transaction_isolation%';
+     +-----------------------+-----------------+
+     | Variable_name         | Value           |
+     +-----------------------+-----------------+
+     | transaction_isolation | REPEATABLE-READ |
+     +-----------------------+-----------------+
+
+
+-- 잠금 없는 일괄된 읽기(Non-Locking Consistent Read)
+
+   - InnoDB 스토리지 엔진에서의 읽기 작업은 MVCC를 이용해서 락을 걸지 않기 때문에 다른 읽기 작업과 상관없이 바로 읽기 작업이 가능.
+   - 격리 수준이 READ_UNCOMMITTED / READ_COMMITTED / REPEATABLE-READ 이라면 INSERT시에 데이타를 읽는것이 아니고
+     순수하게 SELECT로 읽는것이라면 다른 트랜잭션의 변경 작업의 락과는 상관없이 바로 읽는 작업이 바로 실행히 가능하며
+     이는 특정 사용자가 데이터를 변경하고 아직 COMMIT를 실행하지 않아도 다른 사용자의 SELECT 작업에는 영향을 받지 않음.
+   - InnoDB에서는 항상 변경되기 전의 데이터를 언두 로그에 보관하여 사용함.
+   - 데이터를 변경 후에 오랜시간 동안에 COMMIT이나 ROLLBACK를 하지 않으면 MySQL DB가 느려지기 때문에 빠른 시간에 COMMIT이나 ROLLBACK이 필요.
+
+
+-- 자동 데드락 감지
+
+
+
+
 
 
 

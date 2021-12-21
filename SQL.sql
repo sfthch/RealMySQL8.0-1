@@ -766,6 +766,75 @@
    - MyISAM는 프라이머리 키는 유니크 제약을 가진 세컨더리 인덱스이며 프라이머리 키와 모든 인덱스는 물리적인 레코드의 주소 값(ROWID)을 가짐.
 
 
+-- 외래 키 지원
+
+   - InnoDB 스토리지 엔진 레벨에서는 지원하는 기능으로 MyISAM이나 MEMORY 테이블에서 사용 불가.
+   - 데이터베이스 서버 운영시 불편함으로 서비스용 데이터베이스에서 생성하지 않는 경우도 있음.
+   - InnoDB 에서 외래 키는 부모 테이블과 자식 테이블 모두 해당 컬럼에 인덱스 생성이 필요하고 변경시에는 반드시
+     부모 테이블이나 자식 테이블에서 데이터가 있는지 체크하기 때문에 데드락이 발생 하기도 하기 때문에 개발할때도 주의가 필요.
+   - 위와 같은 이유로 수동으로 데이터를 적재하거나 스키마 변경 등의 작업에서 문제가 될 수도 있음.
+     그러므로 부모 테이블과 자식 테이블의 관계를 정확하게 파악후에 작업을 진행해야 함.
+   - 서비스 운영에 긴급하게 작업을 진행 할 경우에는 foreign_key_checks 시스템 변수를 OFF 로 설정 후에 작업을 진행.
+   - 위와 같이 설정을 바꾸어서 외래 키의 체크를 일시적으로 중지 시키면 데이터 적재나 삭제등의 작업을 빠르게 진행가능.
+
+     SHOW VARIABLES LIKE '%foreign_key_checks%';
+     +--------------------+-------+
+     | Variable_name      | Value |
+     +--------------------+-------+
+     | foreign_key_checks | ON    |
+     +--------------------+-------+
+
+     SET SESSION foreign_key_checks=OFF;
+
+     SHOW VARIABLES LIKE '%foreign_key_checks%';
+     +--------------------+-------+
+     | Variable_name      | Value |
+     +--------------------+-------+
+     | foreign_key_checks | OFF   |
+     +--------------------+-------+
+
+   - 외래 키를 일시적으로 중지한 상태에서 부모 테이블에서 데이터를 삭제했다면 반드시 자식 테이블에서도 관련 데이터를 삭제해서
+     부모 테이블의 데이터와 자식 테이블의 데이터 사이의 정합성을 맞추어 준후에 외래 키의 설정을 원래대로 바꾸어 주어야 한다.
+   - foreign_key_checks 가 OFF 인 상태에서는 부모 테이블에 걸려있는 ON DELETE CASECADE 와 ON UPDATE CASECADE 옵션도 무시함.
+
+
+-- MVCC(Multi Version Concurrency Control)
+
+   - 레코드 레벨의 트랜잭션을 지원한는 DBMS가 제공하며 락을 발생하지 않고 데이터 읽을 수 있도록 InnoDB는 언두 로그(Undo log)를 사용.
+   - 멀티 버전이라는 것은 하나의 레코드에 대해서 여러 개의 버전이 동시에 관리.
+   - 새로운 데이터를 넣거나 기존의 데이터를 변경한 후에 COMMIT이나 ROLLBACK이 되지 않은 상태에서 다른 사용자가
+     작업중인 테이터를 조회 한다면 InnoDB 스토리지 엔진을 사용하는 테이블의 데이터 변경에 대한 격리 수준(Isolation level)이
+     READ_UNCOMMITTED 이라면 InnoDB 버퍼 풀이나 데이터 파일로 부터 데이터를 읽어서 변경된 데이터를 조회하게 되며 그러나
+     격리 수준(Isolation level)이 READ_COMMITTED / REPEATABLE-READ / SERIALIZABLE 인 경우에는 COMMIT이 되지 않았다면
+     버퍼 풀이나 데이터 파일에서 읽는 것이 아니라 언두 로그(Undo log)에서 변경 전의 데이터를 읽어서 조회 하도록 한다.
+
+     SHOW VARIABLES LIKE '%transaction_isolation%';
+     +-----------------------+-----------------+
+     | Variable_name         | Value           |
+     +-----------------------+-----------------+
+     | transaction_isolation | REPEATABLE-READ |
+     +-----------------------+-----------------+
+
+
+-- 잠금 없는 일괄된 읽기(Non-Locking Consistent Read)
+
+   - InnoDB 스토리지 엔진에서의 읽기 작업은 MVCC를 이용해서 락을 걸지 않기 때문에 다른 읽기 작업과 상관없이 바로 읽기 작업이 가능.
+   - 격리 수준이 READ_UNCOMMITTED / READ_COMMITTED / REPEATABLE-READ 이라면 INSERT시에 데이타를 읽는것이 아니고
+     순수하게 SELECT로 읽는것이라면 다른 트랜잭션의 변경 작업의 락과는 상관없이 바로 읽는 작업이 바로 실행히 가능하며
+     이는 특정 사용자가 데이터를 변경하고 아직 COMMIT를 실행하지 않아도 다른 사용자의 SELECT 작업에는 영향을 받지 않음.
+   - InnoDB에서는 항상 변경되기 전의 데이터를 언두 로그에 보관하여 사용함.
+   - 데이터를 변경 후에 오랜시간 동안에 COMMIT이나 ROLLBACK를 하지 않으면 MySQL DB가 느려지기 때문에 빠른 시간에 COMMIT이나 ROLLBACK이 필요.
+
+
+-- 자동 데드락 감지
+
+
+
+
+
+
+
+
 
 
 -- 중복 데이타 제거
