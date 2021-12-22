@@ -1,4 +1,5 @@
--- ¼³Á¤°ª º¯°æ
+```
+-- ì„¤ì •ê°’ ë³€ê²½
 
    SHOW VARIABLES LIKE 'innodb_io%';
    +------------------------+-------+
@@ -38,10 +39,10 @@
    | innodb_io_capacity_max | 400   |
    +------------------------+-------+
 
-   RESET PERSIST;  -- ÀüÃ¼Ãë¼Ò
+   RESET PERSIST;  -- ì „ì²´ì·¨ì†Œ
 
 
--- »ç¿ëÀÚ ÀÎÁõ¹æ½Ä º¯°æ
+-- ì‚¬ìš©ì ì¸ì¦ë°©ì‹ ë³€ê²½
 
    - SHOW GLOBAL VARIABLES LIKE 'default_authentication_plugin%';
      +-------------------------------+-----------------------+
@@ -50,25 +51,25 @@
      | default_authentication_plugin | caching_sha2_password |
      +-------------------------------+-----------------------+
 
-   - SET GLOBAL       default_authentication_plugin=mysql_native_password;  -- ÀÓ½Ãº¯°æ
+   - SET GLOBAL       default_authentication_plugin=mysql_native_password;  -- ì„ì‹œë³€ê²½
      or
-     SET PERSIST      default_authentication_plugin=mysql_native_password;  -- ¿µ±¸º¯°æ
+     SET PERSIST      default_authentication_plugin=mysql_native_password;  -- ì˜êµ¬ë³€ê²½
      or
-     SET PERSIST_ONLY default_authentication_plugin=mysql_native_password;  -- SET PERSIST ¿¡·¯½Ã
+     SET PERSIST_ONLY default_authentication_plugin=mysql_native_password;  -- SET PERSIST ì—ëŸ¬ì‹œ
 
-     #RESET PERSIST IF EXISTS default_authentication_plugin;    -- »èÁ¦½Ã
+     #RESET PERSIST IF EXISTS default_authentication_plugin;    -- ì‚­ì œì‹œ
 
    - my.cnf (caching_sha2_password => mysql_native_password)
      [mysqld]
      default_authentication_plugin=mysql_native_password
 
 
--- db »ı¼º
+-- db ìƒì„±
 
    - CREATE DATABASE test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 
--- Roll »ı¼º ¹× ±ÇÇÑºÎ¿©
+-- Roll ìƒì„± ë° ê¶Œí•œë¶€ì—¬
 
    CREATE ROLE role_test_read
              , role_test_write
@@ -94,7 +95,7 @@
    | NONE           |
    +----------------+
 
-   SET ROLE role_test_read;     -- ÀÓ½Ãº¯°æ
+   SET ROLE role_test_read;     -- ì„ì‹œë³€ê²½
 
    SELECT current_role();
    +----------------------+
@@ -103,7 +104,7 @@
    | `role_test_read`@`%` |
    +----------------------+
 
-   -- LOGIN½Ã SET ROLE ÀÚµ¿¼³Á¤
+   -- LOGINì‹œ SET ROLE ìë™ì„¤ì •
    SHOW GLOBAL VARIABLES LIKE 'activate_all_roles_on_login%';
    +-----------------------------+-------+
    | Variable_name               | Value |
@@ -111,13 +112,13 @@
    | activate_all_roles_on_login | OFF   |
    +-----------------------------+-------+
 
-   SET GLOBAL       activate_all_roles_on_login=ON;     -- ÀÓ½Ãº¯°æ
+   SET GLOBAL       activate_all_roles_on_login=ON;     -- ì„ì‹œë³€ê²½
    or
-   SET PERSIST      activate_all_roles_on_login=ON;     -- ¿µ±¸º¯°æ
+   SET PERSIST      activate_all_roles_on_login=ON;     -- ì˜êµ¬ë³€ê²½
    or
-   SET PERSIST_ONLY activate_all_roles_on_login=ON;     -- SET PERSIST ¿¡·¯½Ã
+   SET PERSIST_ONLY activate_all_roles_on_login=ON;     -- SET PERSIST ì—ëŸ¬ì‹œ
 
-   #RESET PERSIST IF EXISTS activate_all_roles_on_login;    -- »èÁ¦½Ã
+   #RESET PERSIST IF EXISTS activate_all_roles_on_login;    -- ì‚­ì œì‹œ
 
    SHOW GLOBAL VARIABLES LIKE 'activate_all_roles_on_login%';
    +-----------------------------+-------+
@@ -133,7 +134,7 @@
    SELECT * FROM mysql.db;
 
 
--- »ç¿ëÀÚ »ı¼º¹× ±ÇÇÑÁÖ±â
+-- ì‚¬ìš©ì ìƒì„±ë° ê¶Œí•œì£¼ê¸°
 
    CREATE USER 'hch'@'localhost' IDENTIFIED WITH mysql_native_password BY 'hch7759' PASSWORD EXPIRE NEVER;
    GRANT ALL PRIVILEGES ON test.* TO 'hch'@'localhost';
@@ -163,3 +164,4 @@
         , plugin
      FROM mysql.user
    ;
+```
