@@ -121,4 +121,14 @@ git stash pop
 
 git branch —- set-upstream-to=remote_path/branch_name
   : git pull no tracking info 에러해결
+
+git rm
+  : 원격 저장소와 로컬 저장소에 있는 파일을 삭제한다.
+git rm --cached
+  : 원격 저장소에 있는 파일을 삭제한다. 로컬 저장소에 있는 파일은 삭제하지 않는다.
+
+
+
+출처: https://mygumi.tistory.com/103 [마이구미의 HelloWorld]
+
 ```
