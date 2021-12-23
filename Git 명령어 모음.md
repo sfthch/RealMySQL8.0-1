@@ -59,10 +59,14 @@ git branch checkout 브랜치명
   - 해당 브랜치로 local repository[Working Directory] 변경
 git branch -b 브랜치명
   - 브랜치 생성 후 checkout(= git branch 브랜치명 + git branch checkout 브랜치명)
+git switch -c 브랜치명
+  - -c 옵션은 브랜치 생성과 브랜치 이동을 한번에 수행합니다. (= git branch 브랜치명 + git swtich 브랜치명)
 git branch -d 브랜치명
   - 브랜치명 브랜치 삭제
 git branch merge 브랜치명
   - 현재 checkout된 브랜치로 브랜치명의 브랜치 합침
+git merge --abort
+  - 머지 작업을 취소
 
 [깃허브]
 
@@ -127,8 +131,37 @@ git rm
 git rm --cached
   : 원격 저장소에 있는 파일을 삭제한다. 로컬 저장소에 있는 파일은 삭제하지 않는다.
 
+git checkout <branch>
+git branch <branchname> origin/<branch>
+  : 원격 저장소 브랜치로부터 로컬 저장소 브랜치를 만들고 싶다
 
+git fetch <repository> <refspec>
+  : 원격 저장소 브랜치의 변경 내용을 확인하고 싶다
+    원격 저장소에서 변경한 내용을 확인하고 싶지만,
+    로컬 저장소에 반영시키고 싶지 않은 경우에는 fetch 명령을 사용합니다.
+    fetch 명령은 로컬 저장소의 브랜치는 변경되지 않습니다.
 
-출처: https://mygumi.tistory.com/103 [마이구미의 HelloWorld]
+git pull <repository> <refspec>
+  : pull 명령어에 의해, 원격 저장소의 변경 내용이 로컬 저장소의 브랜치에 반영됩니다.
+   「pull = fetch + merge」로 이해 해하면 좋을 것입니다.
 
+git push --delete <repository> <branchname>
+  : 원격 저장소의 브랜치를 삭제하고 싶다
+    push 명령어에 --delete 옵션과 <원격 저장소명> <삭제하려고 하는 브랜치명>을 지정하여 실행합니다.
+
+git remote set-url <name> <newurl>
+  : 이미 등록된 원격 저장소의 주소를 변경하고 싶다
+git remote rename <old> <new>
+  : 이미 등록된 원격 저장소의 이름을 변경하고 싶다
+
+git stash save
+  : 현재 작업을 일시적으로 저장해두고 싶다
+git stash list
+  : 일시적으로 저장해 둔 작업 목록을 확인하고 싶다
+git stash pop
+  : 일시적으로 저장해 둔 작업을 되돌리고 싶다.
+git stash drop
+  : 일시적으로 저장해 둔 작업을 삭제하고 싶다
+git stash clear
+  : 일시적으로 저장해 둔 작업을 모두 삭제하고 싶다
 ```
