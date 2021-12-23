@@ -55,14 +55,14 @@ git branch
 git branch 브랜치명
   - 브랜치명으로 브랜치 생성
   - 단, main 브랜치에 1번 이상 commit 해야함
-git branch swtich 브랜치명
+git branch checkout 브랜치명
   - 해당 브랜치로 local repository[Working Directory] 변경
 git branch -b 브랜치명
-  - 브랜치 생성 후 swtich(= git branch 브랜치명 + git branch swtich 브랜치명)
+  - 브랜치 생성 후 checkout(= git branch 브랜치명 + git branch checkout 브랜치명)
 git branch -d 브랜치명
   - 브랜치명 브랜치 삭제
 git branch merge 브랜치명
-  - 현재 swtich된 브랜치로 브랜치명의 브랜치 합침
+  - 현재 checkout된 브랜치로 브랜치명의 브랜치 합침
 
 [깃허브]
 
@@ -83,7 +83,7 @@ git push -u 원격저장소명 로컬브랜치명
   - -u 옵션을 사용할 경우 해당 원격저장소와 브랜치가 default로 지정되어 git push 명령어만 입력 가능
 git fetch
   - 원격저장소[Repository]의 내용을 local repository[Working Directory]로 가져옴
-  - git swtich 원격저장소명/로컬브랜치명 OR git swtich FETCH_HEAD =가져온 fetch 내용 확인
+  - git checkout 원격저장소명/로컬브랜치명 OR git checkout FETCH_HEAD =가져온 fetch 내용 확인
 git clone 저장소URL
   - 저장소URL의 원격저장소를 복사하여 추가(remote add 명령 필요없음)
 ```
