@@ -86,4 +86,39 @@ git fetch
   - git checkout 원격저장소명/로컬브랜치명 OR git checkout FETCH_HEAD =가져온 fetch 내용 확인
 git clone 저장소URL
   - 저장소URL의 원격저장소를 복사하여 추가(remote add 명령 필요없음)
+
+
+
+git clone git_path
+  : 코드가져오기
+
+git checkout -t remote_path/branch_name
+  : 원격 브랜치 선택하기
+
+git branch -m branch_name change_branch_name
+  : 브랜치 이름 바꾸기
+git push remote_name — delete branch_name
+  : 원격 브랜치 삭제하기 ( git push origin — delete gh-pages )
+
+git pull
+  : git서버에서 최신 코드 받아와 merge 하기
+git fetch
+  : git서버에서 최신 코드 받아오기
+
+git reset —- hard HEAD^
+  : commit한 이전 코드 취소하기
+git reset —- soft HEAD^
+  : 코드는 살리고 commit만 취소하기
+git reset —- merge
+  : merge 취소하기
+git reset —- hard HEAD && git pull
+  : git 코드 강제로 모두 받아오기
+
+git stash / git stash save “description”
+  : 작업코드 임시저장하고 브랜치 바꾸기
+git stash pop
+  : 마지막으로 임시저장한 작업코드 가져오기
+
+git branch —- set-upstream-to=remote_path/branch_name
+  : git pull no tracking info 에러해결
 ```
