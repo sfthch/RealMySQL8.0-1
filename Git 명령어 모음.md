@@ -238,6 +238,14 @@ git clean -fd
 git revert <commit>
   : 이전 commit을 삭제하되 history는 그대로 두기
 
+git reset --merge ORIG_HEAD
+  : 바로 직전에 한 병합(merge)를 취소하려면 다음 명령어를 입력한다.
+
+git commit --amend
+  : 너무 일찍 커밋했거나 어떤 파일을 빼먹었을 때 그리고 커밋 메시지를 잘못 적었을 때 하게 됩니다.
+    다시 커밋하고 싶으면 --amend 옵션을 사용한다
+
+
 git log --oneline --decorate --graph --all
 
 
