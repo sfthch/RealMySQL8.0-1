@@ -183,4 +183,32 @@ git diff <브랜치이름><다른 브랜치이름>
 git checkout -- <파일명>
   : 로컬의 변경 사항을 변경 전으로 되돌림
 
+
+git add -i
+  : 명령어 출력
+
+git rm –cached [파일경로]
+  : staging directory에 추가된 파일을 다시 working directory로 내려보내는 명령어.
+
+git rm -r --cached
+  : 현재 staging directory에 있는 모든 파일을 한꺼번에 다시 workind directory로 내리기.
+
+git mv (원본이름) (변경할이름)
+  : git status해보면 hello.txt가 hi.txt 바뀐 것을 확인할 수 있다.
+
+git show
+  : 가장 최근에 commit된 정보를 보여줍니다.
+
+git diff --staged
+  : staging area와 committed 사이의 바뀐 점
+
+git remote show
+
+git remote show realmysql
+
+git remote show
+
+git config --global core.editor '"C:\Program Files\EditPlus\editplus.exe"'
+
+git log --oneline --decorate --graph --all
 ```
