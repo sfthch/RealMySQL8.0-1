@@ -101,6 +101,9 @@ git checkout -t remote_path/branch_name
 
 git branch -m branch_name change_branch_name
   : 브랜치 이름 바꾸기
+git branch --all --verbose
+  : --verbose 옵션을 붙이면 최신 commit까지 출력해 준다.
+
 git push remote_name — delete branch_name
   : 원격 브랜치 삭제하기 ( git push origin — delete gh-pages )
 
@@ -208,7 +211,39 @@ git remote show realmysql
 
 git remote show
 
-git config --global core.editor '"C:\Program Files\EditPlus\editplus.exe"'
+git status -s
+  : 추가된 파일은 A, 수정된 파일은 M, 삭제된 파일은 D, 이름이 바뀐 파일은 R로 표시된다.
+
+git push <remote-name> <local-branch-name>:<remote-branch-name>
+  : 기본적으로 로컬 branch의 이름(<branch-name>)과 원격 저장소에 저장될 branch의 이름이 같게 된다.
+    이를 다르게 지정해서 업로드하려면 다음과 같이 쓴다.
+
+git blame <filename>
+  : 파일 히스토리가 나타나는데,
+    해당 수정사항을 포함하는 commit id, 수정한 사람, 수정 일시, 줄 번호, 수정 내용을 볼 수 있다.
+
+
+git checkout -- <filename>
+  : 특정 파일의 수정사항 되돌리기
+git reset --hard
+  : 모든 수정사항을 되돌리기
+git reset --hard <commit>
+  : 준비 영역의 모든 수정사항을 삭제
+git reset <commit>
+  : 여러 commit 통합
+git rebase --interactive <commit>
+  : 이전 commit들을 수정 또는 통합, 혹은 분리
+git clean -fd
+  : untracked 파일을 포함해 모든 수정사항을 되돌리기
+git revert <commit>
+  : 이전 commit을 삭제하되 history는 그대로 두기
 
 git log --oneline --decorate --graph --all
+
+
+git config --global core.excludesfile ~/.gitignore
+git config --global core.excludesfile C:\.gitignore
+
+git config --global core.editor '"C:\Program Files\EditPlus\editplus.exe"'
+
 ```
