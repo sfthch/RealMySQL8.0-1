@@ -896,5 +896,403 @@
 
    -
 
+     SHOW VARIABLES LIKE 'innodb%';
+     +------------------------------------------+------------------------+
+     | Variable_name                            | Value                  |
+     +------------------------------------------+------------------------+
+     | innodb_page_cleaners                     | 1                      |
+     | innodb_max_dirty_pages_pct_lwm           | 10.000000              |
+     | innodb_max_dirty_pages_pct               | 90.000000              |
+     | innodb_io_capacity                       | 200                    |
+     | innodb_io_capacity_max                   | 600                    |
+     | innodb_flush_neighbors                   | 0                      |
+     | innodb_adaptive_flushing                 | ON                     |
+     | innodb_adaptive_flushing_lwm             | 10                     |
+     | innodb_lru_scan_depth                    | 1024                   |
+     | .                                        | .                      |
+     | .                                        | .                      |
+     | .                                        | .                      |
+     +------------------------------------------+------------------------+
+
+
+-- 버퍼 풀 상태 백업 및 복구
+
+     SHOW VARIABLES LIKE '%innodb_buffer_pool%';
+     +-------------------------------------+----------------+
+     | Variable_name                       | Value          |
+     +-------------------------------------+----------------+
+     | innodb_buffer_pool_instances        | 1              |
+     | innodb_buffer_pool_dump_now         | OFF            |
+     | innodb_buffer_pool_load_now         | OFF            |
+     | innodb_buffer_pool_load_abort       | OFF            |
+     | innodb_buffer_pool_dump_at_shutdown | ON             |
+     | innodb_buffer_pool_load_at_startup  | ON             |
+     | .                                   | .              |
+     | .                                   | .              |
+     | .                                   | .              |
+     +-------------------------------------+----------------+
+
+     SET GLOBAL innodb_buffer_pool_dump_now=ON;
+
+     SET GLOBAL innodb_buffer_pool_load_now=ON;
+
+     SHOW STATUS LIKE '%innodb_buffer_pool_dump_status%' \G
+     *************************** 1. row ***************************
+     Variable_name: Innodb_buffer_pool_dump_status
+             Value: Dumping of buffer pool not started
+
+     SET GLOBAL innodb_buffer_pool_load_abort=ON;
+
+
+-- 버퍼 풀의 적재 내용 확인
+
+     SELECT it.name            table_name
+          , ii.name            index_name
+          , ici.n_cached_pages n_cached_pages
+          # SELECT it.*, ii.*, ici.*
+       FROM information_schema.innodb_tables it
+      INNER
+       JOIN information_schema.innodb_indexes ii
+         ON ii.table_id = it.table_id
+       LEFT OUTER
+       JOIN information_schema.innodb_cached_indexes ici
+         ON ici.index_id = ii.index_id
+      WHERE it.name = CONCAT('sakila', '/', 'rental')
+     ;
+     +---------------+---------------------+----------------+
+     | table_name    | index_name          | n_cached_pages |
+     +---------------+---------------------+----------------+
+     | sakila/rental | PRIMARY             |              4 |
+     | sakila/rental | rental_date         |           NULL |
+     | sakila/rental | idx_fk_inventory_id |           NULL |
+     | sakila/rental | idx_fk_customer_id  |           NULL |
+     | sakila/rental | idx_fk_staff_id     |           NULL |
+     +---------------+---------------------+----------------+
+
+     SELECT t.table_schema
+          , t.table_name
+          , ( SELECT SUM(ici.n_cached_pages) n_cached_pages
+                FROM information_schema.innodb_tables it
+               INNER
+                JOIN information_schema.innodb_indexes ii
+                  ON ii.table_id = it.table_id
+                LEFT OUTER
+                JOIN information_schema.innodb_cached_indexes ici
+                  ON ici.index_id = ii.index_id
+               WHERE it.name = CONCAT(t.table_schema, '/', t.table_name)
+            )     AS total_cached_pages
+          , t.data_length
+          , t.index_length
+          , t.data_free
+          , @@innodb_page_size
+          , ( ( t.data_length
+              + t.index_length
+              - t.data_free
+              )
+            / @@innodb_page_size
+            ) AS total_pages
+          # SELECT t.*
+       FROM information_schema.tables t
+      WHERE t.table_schema = 'sakila'
+      # AND t.table_name   = 'rental'
+      ORDER BY total_cached_pages IS NULL ASC
+             , total_cached_pages ASC
+     ;
+     +--------------+----------------------------+--------------------+-------------+--------------+-----------+--------------------+-------------+
+     | TABLE_SCHEMA | TABLE_NAME                 | total_cached_pages | DATA_LENGTH | INDEX_LENGTH | DATA_FREE | @@innodb_page_size | total_pages |
+     +--------------+----------------------------+--------------------+-------------+--------------+-----------+--------------------+-------------+
+     | sakila       | rental                     |                  4 |     1589248 |      1196032 |         0 |              16384 |    170.0000 |
+     | sakila       | actor                      |               NULL |       16384 |        16384 |         0 |              16384 |      2.0000 |
+     | sakila       | actor_info                 |               NULL |        NULL |         NULL |      NULL |              16384 |        NULL |
+     | sakila       | address                    |               NULL |       98304 |        16384 |         0 |              16384 |      7.0000 |
+     | sakila       | category                   |               NULL |       16384 |            0 |         0 |              16384 |      1.0000 |
+     | sakila       | city                       |               NULL |       49152 |        16384 |         0 |              16384 |      4.0000 |
+     | sakila       | country                    |               NULL |       16384 |            0 |         0 |              16384 |      1.0000 |
+     | sakila       | customer                   |               NULL |       81920 |        49152 |         0 |              16384 |      8.0000 |
+     | sakila       | customer_list              |               NULL |        NULL |         NULL |      NULL |              16384 |        NULL |
+     | sakila       | film                       |               NULL |      196608 |        81920 |         0 |              16384 |     17.0000 |
+     | sakila       | film_actor                 |               NULL |      196608 |        81920 |         0 |              16384 |     17.0000 |
+     | sakila       | film_category              |               NULL |       65536 |        16384 |         0 |              16384 |      5.0000 |
+     | sakila       | film_list                  |               NULL |        NULL |         NULL |      NULL |              16384 |        NULL |
+     | sakila       | film_text                  |               NULL |      180224 |        16384 |         0 |              16384 |     12.0000 |
+     | sakila       | inventory                  |               NULL |      180224 |       196608 |         0 |              16384 |     23.0000 |
+     | sakila       | language                   |               NULL |       16384 |            0 |         0 |              16384 |      1.0000 |
+     | sakila       | nicer_but_slower_film_list |               NULL |        NULL |         NULL |      NULL |              16384 |        NULL |
+     | sakila       | payment                    |               NULL |     1589248 |       638976 |         0 |              16384 |    136.0000 |
+     | sakila       | sales_by_film_category     |               NULL |        NULL |         NULL |      NULL |              16384 |        NULL |
+     | sakila       | sales_by_store             |               NULL |        NULL |         NULL |      NULL |              16384 |        NULL |
+     | sakila       | staff                      |               NULL |       65536 |        32768 |         0 |              16384 |      6.0000 |
+     | sakila       | staff_list                 |               NULL |        NULL |         NULL |      NULL |              16384 |        NULL |
+     | sakila       | store                      |               NULL |       16384 |        32768 |         0 |              16384 |      3.0000 |
+     +--------------+----------------------------+--------------------+-------------+--------------+-----------+--------------------+-------------+
+
+
+-- Double Write Buffer
+
+     SHOW VARIABLES LIKE '%innodb_doublewrite%';
+     +-------------------------------+-------+
+     | Variable_name                 | Value |
+     +-------------------------------+-------+
+     | innodb_doublewrite            | ON    |
+     | innodb_doublewrite_batch_size | 0     |
+     | innodb_doublewrite_dir        |       |
+     | innodb_doublewrite_files      | 2     |
+     | innodb_doublewrite_pages      | 4     |
+     +-------------------------------+-------+
+
+     SHOW VARIABLES LIKE '%innodb_flush_log_at_trx_commit%';
+     +--------------------------------+-------+
+     | Variable_name                  | Value |
+     +--------------------------------+-------+
+     | innodb_flush_log_at_trx_commit | 1     |
+     +--------------------------------+-------+
+
+
+-- 언두 로그
+
+
+-- 언두 로그 레코드 모니터링
+
+     UPDATE member
+        SET name = '홍길도'
+      WHERE member_id = 1
+     ;
+
+     SHOW ENGINE INNODB STATUS \G
+     ...
+     ------------
+     TRANSACTIONS
+     ------------
+     Trx id counter 4301
+     Purge done for trx's n:o < 4301 undo n:o < 0 state: running but idle
+     History list length 0
+     ...
+
+     SELECT i.name
+          , i.subsystem
+          , i.count
+          # SELECT i.*
+       FROM information_schema.innodb_metrics i
+      WHERE i.name      = 'trx_rseg_history_len'
+        AND i.subsystem = 'transaction'
+     ;
+     +----------------------+-------------+-------+
+     | NAME                 | SUBSYSTEM   | COUNT |
+     +----------------------+-------------+-------+
+     | trx_rseg_history_len | transaction |     0 |
+     +----------------------+-------------+-------+
+                            +-----------+-----------+-----------+-------------+-----------------+-----------------+-----------------+
+                            | MAX_COUNT | MIN_COUNT | AVG_COUNT | COUNT_RESET | MAX_COUNT_RESET | MIN_COUNT_RESET | AVG_COUNT_RESET |
+                            +-----------+-----------+-----------+-------------+-----------------+-----------------+-----------------+
+                            |         0 |         0 |      NULL |           0 |               0 |               0 |            NULL |
+                            +-----------+-----------+-----------+-------------+-----------------+-----------------+-----------------+
+                            +---------------------+---------------+--------------+------------+---------+-------+
+                            | TIME_ENABLED        | TIME_DISABLED | TIME_ELAPSED | TIME_RESET | STATUS  | TYPE  |
+                            +---------------------+---------------+--------------+------------+---------+-------+
+                            | 2021-12-28 07:25:23 | NULL          |        29886 | NULL       | enabled | value |
+                            +---------------------+---------------+--------------+------------+---------+-------+
+                            +-------------------------------------+
+                            | COMMENT                             |
+                            +-------------------------------------+
+                            | Length of the TRX_RSEG_HISTORY list |
+                            +-------------------------------------+
+
+
+-- 언두 테이블스페이스 관리
+
+     SHOW VARIABLES LIKE '%innodb_undo_tablespaces%';
+     +-------------------------+-------+
+     | Variable_name           | Value |
+     +-------------------------+-------+
+     | innodb_undo_tablespaces | 2     |
+     +-------------------------+-------+
+
+     SHOW VARIABLES LIKE '%innodb_rollback_segments%';
+     +----------------------------+-------+
+     | Variable_name              | Value |
+     +----------------------------+-------+
+     | innodb_rollback_segments   | 128   |
+     +----------------------------+-------+
+
+     SELECT f.tablespace_name
+          , f.file_name
+          , f.data_free
+          # SELECT f.*
+       FROM information_schema.files f
+      WHERE file_type LIKE 'UNDO LOG'
+     ;
+     +-----------------+------------+-----------+
+     | TABLESPACE_NAME | FILE_NAME  | DATA_FREE |
+     +-----------------+------------+-----------+
+     | innodb_undo_001 | ./undo_001 |   7340032 |
+     | innodb_undo_002 | ./undo_002 |   6291456 |
+     +-----------------+------------+-----------+
+
+     CREATE UNDO TABLESPACE extra_undo_003 ADD DATAFILE '/data/undo_dir/undo_003';
+
+     SELECT f.tablespace_name
+          , f.file_name
+          # f.data_free
+          # SELECT f.*
+       FROM information_schema.files f
+      WHERE file_type LIKE 'UNDO LOG'
+     ;
+     +-----------------+-----------------------------+
+     | TABLESPACE_NAME | FILE_NAME                   |
+     +-----------------+-----------------------------+
+     | innodb_undo_001 | ./undo_001                  |
+     | innodb_undo_002 | ./undo_002                  |
+     | extra_undo_003  | /data/undo_dir/undo_003.ibu |
+     +-----------------+-----------------------------+
+
+     # 언두 테이블스페이스를 비활성화
+     ALTER UNDO TABLESPACE extra_undo_003 SET INACTIVE;
+
+     # 비활성화된 언두 테이블스페이스 삭제
+     DROP UNDO TABLESPACE extra_undo_003;
+
+     SHOW VARIABLES LIKE '%innodb_undo_log_truncate%';
+     +--------------------------+-------+
+     | Variable_name            | Value |
+     +--------------------------+-------+
+     | innodb_undo_log_truncate | ON    |
+     +--------------------------+-------+
+
+     SHOW VARIABLES LIKE '%innodb_purge_rseg_truncate_frequency%';
+     +--------------------------------------+-------+
+     | Variable_name                        | Value |
+     +--------------------------------------+-------+
+     | innodb_purge_rseg_truncate_frequency | 128   |
+     +--------------------------------------+-------+
+
+     # 언두 테이블스페이스를 비활성화
+     ALTER UNDO TABLESPACE tablespace_name SET INACTIVE;
+
+     # 퍼지 스레드에 의해 언두 테이블스페이스 공간이 반납되면 다시 활성화
+     ALTER UNDO TABLESPACE tablespace_name SET ACTIVE;
+
+
+
+-- 체인지 버퍼
+
+     SHOW VARIABLES LIKE '%innodb_change_buffering%';
+     +-------------------------------+-------+
+     | Variable_name                 | Value |
+     +-------------------------------+-------+
+     | innodb_change_buffering       | all   |
+     +-------------------------------+-------+
+     . all     :
+     . none    :
+     . inserts :
+     . deletes :
+     . changes :
+     . purges  :
+
+     SHOW VARIABLES LIKE '%innodb_change_buffer_max_size%';
+     +-------------------------------+-------+
+     | Variable_name                 | Value |
+     +-------------------------------+-------+
+     | innodb_change_buffer_max_size | 25    |
+     +-------------------------------+-------+
+
+     SELECT m.event_name
+          , m.current_number_of_bytes_used
+          # SELECT m.*
+       FROM performance_schema.memory_summary_global_by_event_name m
+      WHERE m.event_name = 'memory/innodb/ibuf0ibuf'
+     ;
+     +-------------------------+-------------+------------+---------------------------+
+     | EVENT_NAME              | COUNT_ALLOC | COUNT_FREE | SUM_NUMBER_OF_BYTES_ALLOC |
+     +-------------------------+-------------+------------+---------------------------+
+     | memory/innodb/ibuf0ibuf |           1 |          0 |                       136 |
+     +-------------------------+-------------+------------+---------------------------+
+                               +--------------------------+----------------+--------------------+-----------------+
+                               | SUM_NUMBER_OF_BYTES_FREE | LOW_COUNT_USED | CURRENT_COUNT_USED | HIGH_COUNT_USED |
+                               +--------------------------+----------------+--------------------+-----------------+
+                               |                        0 |              0 |                  1 |               1 |
+                               +--------------------------+----------------+--------------------+-----------------+
+                               +--------------------------+------------------------------+---------------------------+
+                               | LOW_NUMBER_OF_BYTES_USED | CURRENT_NUMBER_OF_BYTES_USED | HIGH_NUMBER_OF_BYTES_USED |
+                               +--------------------------+------------------------------+---------------------------+
+                               |                        0 |                          136 |                       136 |
+                               +--------------------------+------------------------------+---------------------------+
+
+     SHOW ENGINE INNODB STATUS \G
+     ...
+     -------------------------------------
+     INSERT BUFFER AND ADAPTIVE HASH INDEX
+     -------------------------------------
+     Ibuf: size 1, free list len 0, seg size 2, 0 merges
+     merged operations:
+      insert 0, delete mark 0, delete 0
+     discarded operations:
+      insert 0, delete mark 0, delete 0
+     ...
+
+
+-- 리두 로그 및 로그 버퍼
+
+     SHOW VARIABLES LIKE '%innodb_flush_log_at%';
+     +--------------------------------+-------+
+     | Variable_name                  | Value |
+     +--------------------------------+-------+
+     | innodb_flush_log_at_timeout    | 1     |
+     | innodb_flush_log_at_trx_commit | 1     |
+     +--------------------------------+-------+
+     .innodb_flush_log_at_trx_commit = 0 :
+     .innodb_flush_log_at_trx_commit = 1 :
+     .innodb_flush_log_at_trx_commit = 2 :
+
+      SHOW VARIABLES LIKE '%innodb_log_file%';
+      +---------------------------+----------+
+      | Variable_name             | Value    |
+      +---------------------------+----------+
+      | innodb_log_file_size      | 50331648 |
+      | innodb_log_files_in_group | 2        |
+      +---------------------------+----------+
+
+
+-- 리두 로그 아카이빙
+
+      SHOW VARIABLES LIKE '%innodb_redo_log_archive_dirs%';
+      +------------------------------+-------+
+      | Variable_name                | Value |
+      +------------------------------+-------+
+      | innodb_redo_log_archive_dirs |       |
+      +------------------------------+-------+
+
+      C:
+      cd C:\Temp
+      mkdir .\mysql\log\archive
+      cd .\mysql\log\archive
+      mkdir .\21122817
+
+      SET GLOBAL innodb_redo_log_archive_dirs='backup:C:\Temp\mysql\log\archive';
+
+      SELECT innodb_redo_log_archive_start('backup', '21122817');
+      or
+      DO innodb_redo_log_archive_start('backup', '21122817');
+
+      SELECT innodb_redo_log_archive_stop();
+      or
+      DO innodb_redo_log_archive_stop();
+
+
+-- 리두 로그 활성화 및 비활성화
+
+      SHOW GLOBAL STATUS LIKE '%Innodb_redo_log_enabled%';
+      +-------------------------+-------+
+      | Variable_name           | Value |
+      +-------------------------+-------+
+      | Innodb_redo_log_enabled | ON    |
+      +-------------------------+-------+
+
+
+-- 어댑티브 해시 인덱스
+
+
+--
+
+
 
 ```
