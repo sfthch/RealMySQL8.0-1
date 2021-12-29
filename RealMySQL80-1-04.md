@@ -131,12 +131,9 @@
      나머지 버퍼로부터 디스크까지 기록하는 작업은 백그라운드 스레드가 처리.
 
 
--- [참고]
-
-   - MySQL에서 사용자 스레드와 포그라운드 스레드는 똑같은 의미로 사용.
-   - 클라이언트가 MySQL 서버에 접속하게 되면 MySQL 서버는 그 클라이언트의 요청을 처리해 줄 스레드를 생성해 그 클라이언트에 할당해 준다.
-   - 이 스레드는 DBMS의 앞단에서 사용자(클라이언트)와 통신하기 때문에 포그라운드 스레드라고 하며,
-     또한 사용자가 요청한 작업을 처리하기 때문에 사용자 스레드라고도 한다.
+   - 참고 : MySQL에서 사용자 스레드와 포그라운드 스레드는 똑같은 의미로 사용하며 클라이언트가 MySQL 서버에 접속하게 되면 MySQL 서버는
+            그 클라이언트의 요청을 처리해 줄 스레드를 생성해 그 클라이언트에 할당해 주고 이 스레드는 DBMS의 앞단에서 사용자(클라이언트)와
+            통신하기 때문에 포그라운드 스레드라고 하며 또한 사용자가 요청한 작업을 처리하기 때문에 사용자 스레드라고도 한다.
 
 
 -- 백그라운드 스레드
@@ -408,9 +405,7 @@
      시스템 테이블과 데이터 딕셔너리 정보를 모두 모아서 mysql DB에 저장하며 mysql DB는 통째로 mysql.idb라는 테이블스페이스에 저장.
 
 
--- [참고]
-
-   - MySQL 서버는 데이터 딕셔너리 정보를 information_schema DB와 Tables와 Columns 등과 같은 뷰를 통해서 조회가 가능.
+   - 참고 : MySQL 서버는 데이터 딕셔너리 정보를 information_schema DB와 Tables와 Columns 등과 같은 뷰를 통해서 조회가 가능.
 
      SHOW CREATE TABLE information_schema.tables;
      +--------+-------------------------------------------------------------------------------------------------------------------------+----------------------+----------------------+
@@ -916,20 +911,20 @@
      더티 페이지를 한 번에 디스크로 기록하느냐에 따라서 사용자의 쿼리 처리가 악영향을 받지 않으면서 부드럽게 처리가 됨.
 
      SHOW VARIABLES LIKE 'innodb%';
-     +------------------------------------------+------------------------+
-     | Variable_name                            | Value                  |
-     +------------------------------------------+------------------------+
-     | innodb_page_cleaners                     | 1                      |
-     | innodb_buffer_pool_instances             | 1                      |
-     | innodb_max_dirty_pages_pct_lwm           | 10.000000              |
-     | innodb_max_dirty_pages_pct               | 90.000000              |
-     | innodb_io_capacity                       | 200                    |
-     | innodb_io_capacity_max                   | 600                    |
-     | innodb_flush_neighbors                   | 0                      |
-     | innodb_adaptive_flushing                 | ON                     |
-     | innodb_adaptive_flushing_lwm             | 10                     |
-     | ...                                      | ...                    |
-     +------------------------------------------+------------------------+
+     +------------------------------------------+-----------+
+     | Variable_name                            | Value     |
+     +------------------------------------------+-----------+
+     | innodb_page_cleaners                     | 1         |
+     | innodb_buffer_pool_instances             | 1         |
+     | innodb_max_dirty_pages_pct_lwm           | 10.000000 |
+     | innodb_max_dirty_pages_pct               | 90.000000 |
+     | innodb_io_capacity                       | 200       |
+     | innodb_io_capacity_max                   | 600       |
+     | innodb_flush_neighbors                   | 0         |
+     | innodb_adaptive_flushing                 | ON        |
+     | innodb_adaptive_flushing_lwm             | 10        |
+     | ...                                      | ...       |
+     +------------------------------------------+-----------+
 
    - InnoDB 스토리지 엔진에서 더티 페이지를 디스크로 동기화하는 스레드를 클리너 스레드(Cleaner Thread)라고 하며
      innodb_page_cleaners 시스템 변수는 클리너 스레드의 개수를 조정함.
@@ -990,41 +985,98 @@
 -- URL 리스트 플러시
 
      SHOW VARIABLES LIKE '%innodb_lru_scan_depth%';
-     +------------------------------------------+------------------------+
-     | Variable_name                            | Value                  |
-     +------------------------------------------+------------------------+
-     | innodb_lru_scan_depth                    | 1024                   |
-     +------------------------------------------+------------------------+
+     +-----------------------+-------+
+     | Variable_name         | Value |
+     +-----------------------+-------+
+     | innodb_lru_scan_depth | 1024  |
+     +-----------------------+-------+
+
+   - InnoDB 스토리지 엔진은 LRU 리스트에서 사용 빈도가 낮은 데이터 페이지들을 제거해서 새로운 페이지들을
+     읽어올 공간을 만들어야 하는데 이를 위해 LRU 리스트(LRU list) 플러시 함수가 사용되고 LRU 리스트 끝부분부터
+     시작해서 최대 innodb_lru_scan_depth 시스템 변수에 설정된 개수만큼의 페이지들을 스캔함.
+
+     SHOW VARIABLES LIKE '%innodb_buffer_pool_instances%';
+     +------------------------------+-------+
+     | Variable_name                | Value |
+     +------------------------------+-------+
+     | innodb_buffer_pool_instances | 1     |
+     +------------------------------+-------+
+
+   - InnoDB 스토리지 엔진은 이때 스캔하면서 더티 페이지는 디스크에 동기화하게 하며 클린 페이지는 즉시 플(Free) 리스트로
+     페이지를 옮기고 InnoDB 버퍼 풀 인스턴스별로 최대 innodb_lru_scan_depth 개수만큼 스캔하기 때문에
+     실질적으로 LRU 리스트 스캔은 (innodb_buffer_pool_instances * innodb_lru_scan_depth) 수 만큼 수행함.
 
 
 -- 버퍼 풀 상태 백업 및 복구
 
-     SHOW VARIABLES LIKE '%innodb_buffer_pool%';
-     +-------------------------------------+----------------+
-     | Variable_name                       | Value          |
-     +-------------------------------------+----------------+
-     | innodb_buffer_pool_instances        | 1              |
-     | innodb_buffer_pool_dump_now         | OFF            |
-     | innodb_buffer_pool_load_now         | OFF            |
-     | innodb_buffer_pool_load_abort       | OFF            |
-     | innodb_buffer_pool_dump_at_shutdown | ON             |
-     | innodb_buffer_pool_load_at_startup  | ON             |
-     | ...                                 | ...            |
-     +-------------------------------------+----------------+
+   - InnoDB 서버의 버퍼 풀은 쿼리의 성능에 매우 밀접하게 연결되 있고 쿼리 요청이 매우 빈번한 서버를 셧다운했다가
+     다시 시작하고 서비스를 시작하면 쿼리 처리 성능이 평사시보다 1/10도 않되는 경우가 대부분임.
+   - 버퍼 풀에 쿼리들이 사용할 데이터가 이미 준비돼 있으므로 디스크에서 데이터를 읽지 않아도 쿼리가 처리될 수 있기 때문이고
+     디스크의 데이터가 버퍼 풀에 적재돼 있는 상태를 워밍업(Warming Up)이라도 표현하는데 버퍼 풀이 잘 워밍업된 상태에서는
+     그렇지 않은 경우보다 몇십 배의 쿼리 처리 속도를 보이는것이 일반적임.
+   - MySQL 5.5 버전에서는 점검을 위해 MySQL 서버를 셧다운했다가 다시 시작하는 경우 서비스를 오픈하기 전에 강제 워밍없을 위해
+     주요 테이블과 인덱스에 대해 풀 스캔을 한 번씩 실행하고 서비스를 오픈함.
 
+     SHOW VARIABLES LIKE '%innodb_buffer_pool%';
+     +-------------------------------------+-------+
+     | Variable_name                       | Value |
+     +-------------------------------------+-------+
+     | innodb_buffer_pool_dump_now         | OFF   |
+     | innodb_buffer_pool_load_now         | OFF   |
+     | innodb_buffer_pool_load_abort       | OFF   |
+     | innodb_buffer_pool_dump_at_shutdown | ON    |
+     | innodb_buffer_pool_load_at_startup  | ON    |
+     | ...                                 | ...   |
+     +-------------------------------------+-------+
+
+   - MySQL 5.6 버전부터는 버퍼 풀 덤프 및 적재 기능이 도입됐고 서버 점검이나 기타 작업을 위해 MySQL 서버를 재시작해야 한는 경우
+     MySQL 서버를 셧다운하기 전에 다음과 같이 innodb_buffer_pool_dump_now 시스템 변수를 이용해 현재 InnoDB 버퍼 풀의 상태를 백업할 수 있고
+     MySQL 서버를 다시 시작하면 innodb_buffer_pool_load_now 시스템 변수를 이용해 백업된 버퍼 풀의 상태를 다시 복구함.
+
+     # MySQL 서버 셧다운 전에 버퍼 풀의 상태 백업
      SET GLOBAL innodb_buffer_pool_dump_now=ON;
 
+     # MySQL 서버 재시작 후 백업된 버퍼 풀의 상태 복구
      SET GLOBAL innodb_buffer_pool_load_now=ON;
+
+   - InnoDB 버퍼 풀의 백업은 데이터 디렉터리에 ib_buffer_pool이라는 이름의 파일로 생성되는데 실제 이 파일의 크기를 보면 아무리
+     InnoDB 버퍼 풀이 크다 하더라도 몇십 MB 이하이고 이는 InnoDB 스토리지 엔진이 버퍼 풀의 LRU 리스트에서 적재된 데이터 페이지의
+     메타 정보만 가져와 저장하기 때문이며 그래서 버퍼 풀의 백업은 매우 빨리 완료됨.
+   - 하지만 백업된 버퍼 풀의 내용을 다시 버퍼 풀로 복구하는 과정은 InnoDB 버퍼 풀의 크기에 따라 상당한 시간이 걸릴 수도 있으며
+     이는 백업되 내용에서 각 테이블의 데이터 페이지를 다시 디스크에서 읽어와야 하기 때문이고
+     그래서 InnoDB 스토리지 엔진은 버퍼 풀을 다시 복구하는 과정이 어느 정도 진행됐는지 확인 할 수 있게 상태값을 제공함.
 
      SHOW STATUS LIKE 'innodb_buffer_pool_dump_status' \G
      *************************** 1. row ***************************
      Variable_name: Innodb_buffer_pool_dump_status
              Value: Dumping of buffer pool not started
 
+   - 버퍼 풀 적재 작업에 너무 시간이 오래 걸려서 중간에 멈추고자 한다면 innodb_buffer_pool_load_abort 시스템 변수를 이용.
+   - InnoDB의 버퍼 풀을 다시 복구하는 작업은 상당히 많은 디스크 읽기를 필요로 하기 때문에 버퍼 풀 복구가 실행 중인 상태에서 서비스를
+     재개하는 것은 좋지 않은 선택이고 그래서 버퍼 풀 복구 도중에 급히 서비를 재시작해야 한다면 다음과 같이 버퍼 풀 복구를 멈출 것을 권장.
+
      SET GLOBAL innodb_buffer_pool_load_abort=ON;
+
+   - 수동으로 InnoDB 버퍼 풀의 백업과 복구는 수동으로 하기는 쉽지 않기 때문에 다른 작업을 위해 MySQL 서버를 재시작하는 경우
+     해야 할 작업에 집중한 나머지 버퍼 풀의 백업과 복구 과정을 잊어버리기 쉽고 그래서 InnoDB 스토리지 엔진은 MySQL 서버가 셧다운
+     되기 직전에 버퍼 풀의 백업을 실행하고 MySQL 서버가 시작되면 자동으로 백업된 버퍼 풀의 상태를 복구할 수 있는 기능을 제공함.
+   - 버퍼 풀의 백업과 복구를 자동화하려면 innodb_buffer_pool_dump_at_shutdown과
+     innodb_buffer_pool_load_at_startup 설정을 MySQL 서버의 설정 파일에 넣어두면 됨.
+
+   - 참고 : InnoDB 버퍼 풀의 백업은 ib_buffer_pool 파일에 기록되는데 그렇다고 반드시 셧다운하기 직전의 파일일 필요는 없고
+            InnoDB 스토리지 엔진은 ib_buffer_pool 파일에서 데이터 페이지의 목록을 가져와서 실제 존재하는 데이터 페이지이면
+            InnoDB 버퍼 풀로 적재하지만 그렇지 않으면 그냥 조용히 무시하고 그래서 실제 존재하지 않는 데이터 페이지 정보가
+            ib_buffer_pool 파일에 명시돼 있다고 해서 MySQL 서버가 비정상적으로 종료되거나 하지 않음.
 
 
 -- 버퍼 풀의 적재 내용 확인
+
+   - MySQL 5.6 버전부터 MySQL 서버의 information_schema 데이터베이스의 innodb_buffer_page 테이블을 이용해 InnoDB 버퍼 풀의 메모리에
+     어떤 테이블의 페이지들이 적재돼 있는지 확인할 수 있지만 InnoDB 버퍼 풀이 큰 경우에는 이 테이블 조회가 상당히 큰 부하를 일으켜서
+     서비스 쿼리가 많이 느려지는 문제가 있고 그래서 실제 서비스용으로 사용되는 MySQL 서버에서는 버퍼 풀의 상태를 확인하는 것은 불가능.
+
+   -  MySQL 8.0 버전에서는 이러한 문제점을 해결하기 위해서 information_schema 데이터베이스에 innodb_cache_indexes 테이블을 새로 추가하고
+      이 테이블을 이용하면 테이블의 인덱스별로 데이터 페이지가 얼마나 InnoDB 버퍼 풀에 적재돼 있는지 확인이 가능함.
 
      SELECT it.name            table_name
           , ii.name            index_name
@@ -1048,6 +1100,8 @@
      | sakila/rental | idx_fk_customer_id  |           NULL |
      | sakila/rental | idx_fk_staff_id     |           NULL |
      +---------------+---------------------+----------------+
+
+   - 조금만 응용하면 테이블 전체(인덱스 포함) 페이지 중에서 대략 어느 정도 비율이 InnoDB 버퍼 풀에 적재돼 있는지 다음과 같이 확인이 가능.
 
      SELECT t.table_schema
           , t.table_name
@@ -1105,6 +1159,10 @@
      | sakila       | staff_list                 |               NULL |        NULL |         NULL |      NULL |              16384 |        NULL |
      | sakila       | store                      |               NULL |       16384 |        32768 |         0 |              16384 |      3.0000 |
      +--------------+----------------------------+--------------------+-------------+--------------+-----------+--------------------+-------------+
+
+     - 아직 MySQL 서버는 개별 인덱스별로 전체 페이지 개수가 몇 개인지는 사용자에게 알려주지 않기 때문에 information_schema의 테이블을
+       이용해도 테이블의 인덱스별로 페이지가 InnoDB 버퍼 풀에 적재된 비율은 확인이 불가능 해서 앞의 예제에서는
+       테이블 단위로 전체 데이터 페이지 개수를 InnoDB 버퍼 풀에 적재된 데이터 페이지 개수의 합을 조회함.
 
 
 -- Double Write Buffer
