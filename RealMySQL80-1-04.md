@@ -1243,55 +1243,224 @@
      .innodb_flush_log_at_trx_commit = 1 :
      .innodb_flush_log_at_trx_commit = 2 :
 
-      SHOW VARIABLES LIKE '%innodb_log_file%';
-      +---------------------------+----------+
-      | Variable_name             | Value    |
-      +---------------------------+----------+
-      | innodb_log_file_size      | 50331648 |
-      | innodb_log_files_in_group | 2        |
-      +---------------------------+----------+
+     SHOW VARIABLES LIKE '%innodb_log_file%';
+     +---------------------------+----------+
+     | Variable_name             | Value    |
+     +---------------------------+----------+
+     | innodb_log_file_size      | 50331648 |
+     | innodb_log_files_in_group | 2        |
+     +---------------------------+----------+
 
 
 -- 리두 로그 아카이빙
 
-      SHOW VARIABLES LIKE '%innodb_redo_log_archive_dirs%';
-      +------------------------------+-------+
-      | Variable_name                | Value |
-      +------------------------------+-------+
-      | innodb_redo_log_archive_dirs |       |
-      +------------------------------+-------+
+     SHOW VARIABLES LIKE '%innodb_redo_log_archive_dirs%';
+     +------------------------------+-------+
+     | Variable_name                | Value |
+     +------------------------------+-------+
+     | innodb_redo_log_archive_dirs |       |
+     +------------------------------+-------+
 
-      C:
-      cd C:\Temp
-      mkdir .\mysql\log\archive
-      cd .\mysql\log\archive
-      mkdir .\21122817
+     C:
+     cd C:\Temp
+     mkdir .\mysql\log\archive
+     cd .\mysql\log\archive
+     mkdir .\21122817
 
-      SET GLOBAL innodb_redo_log_archive_dirs='backup:C:\Temp\mysql\log\archive';
+     SET GLOBAL innodb_redo_log_archive_dirs='backup:C:\Temp\mysql\log\archive';
 
-      SELECT innodb_redo_log_archive_start('backup', '21122817');
-      or
-      DO innodb_redo_log_archive_start('backup', '21122817');
+     SELECT innodb_redo_log_archive_start('backup', '21122817');
+     or
+     DO innodb_redo_log_archive_start('backup', '21122817');
 
-      SELECT innodb_redo_log_archive_stop();
-      or
-      DO innodb_redo_log_archive_stop();
+     SELECT innodb_redo_log_archive_stop();
+     or
+     DO innodb_redo_log_archive_stop();
 
 
 -- 리두 로그 활성화 및 비활성화
 
-      SHOW GLOBAL STATUS LIKE '%Innodb_redo_log_enabled%';
-      +-------------------------+-------+
-      | Variable_name           | Value |
-      +-------------------------+-------+
-      | Innodb_redo_log_enabled | ON    |
-      +-------------------------+-------+
+     SHOW GLOBAL STATUS LIKE '%Innodb_redo_log_enabled%';
+     +-------------------------+-------+
+     | Variable_name           | Value |
+     +-------------------------+-------+
+     | Innodb_redo_log_enabled | ON    |
+     +-------------------------+-------+
 
 
 -- 어댑티브 해시 인덱스
 
+     SHOW VARIABLES LIKE '%innodb_adaptive_hash_index%';
+     +----------------------------------+-------+
+     | Variable_name                    | Value |
+     +----------------------------------+-------+
+     | innodb_adaptive_hash_index       | ON    |
+     | innodb_adaptive_hash_index_parts | 8     |
+     +----------------------------------+-------+
 
---
+     SHOW ENGINE INNODB STATUS \G
+     ...
+     -------------------------------------
+     INSERT BUFFER AND ADAPTIVE HASH INDEX
+     -------------------------------------
+     ...
+     Hash table size 2267, node heap has 1 buffer(s)
+     Hash table size 2267, node heap has 1 buffer(s)
+     Hash table size 2267, node heap has 0 buffer(s)
+     Hash table size 2267, node heap has 1 buffer(s)
+     Hash table size 2267, node heap has 1 buffer(s)
+     Hash table size 2267, node heap has 1 buffer(s)
+     Hash table size 2267, node heap has 2 buffer(s)
+     Hash table size 2267, node heap has 4 buffer(s)
+     0.00 hash searches/s, 0.00 non-hash searches/s
+     ...
+
+     SELECT m.event_name
+          , m.current_number_of_bytes_used
+          # SELECT m.*
+       FROM performance_schema.memory_summary_global_by_event_name m
+      WHERE m.event_name LIKE '%memory/innodb/adaptive hash index%'
+     ;
+     +-----------------------------------+------------------------------+
+     | event_name                        | current_number_of_bytes_used |
+     +-----------------------------------+------------------------------+
+     | memory/innodb/adaptive hash index |                         1232 |
+     +-----------------------------------+------------------------------+
+
+
+-- InnoDB와 MyISAM, MEMORY 스토리지 엔진 비교
+
+     SHOW VARIABLES LIKE '%internal_tmp_mem_storage_engine%';
+     +---------------------------------+-----------+
+     | Variable_name                   | Value     |
+     +---------------------------------+-----------+
+     | internal_tmp_mem_storage_engine | TempTable |
+     +---------------------------------+-----------+
+
+
+-- MyISAM 스토리지 엔지 아키텍처
+
+
+-- 키 캐시
+
+     SHOW GLOBAL STATUS LIKE 'key%';
+     +------------------------+-------+
+     | Variable_name          | Value |
+     +------------------------+-------+
+     | Key_blocks_not_flushed | 0     |
+     | Key_blocks_unused      | 6698  |
+     | Key_blocks_used        | 0     |
+     | Key_read_requests      | 0     |
+     | Key_reads              | 0     |
+     | Key_write_requests     | 0     |
+     | Key_writes             | 0     |
+     +------------------------+-------+
+
+     SHOW VARIABLES LIKE '%key_buffer_size%';
+     +-----------------+---------+
+     | Variable_name   | Value   |
+     +-----------------+---------+
+     | key_buffer_size | 8388608 |
+     +-----------------+---------+
+
+     key_buffer_size = 4GB
+     kbuf_board.key_buffer_size = 2GB
+     kbuf_comment.key_buffer_size = 2GB
+
+     CACHE INDEX db1.board, db2.board IN kbuf_board;
+     CACHE INDEX db1.comment, db2.comment IN kbuf_comment;
+
+
+-- 운영체제의 캐시 및 버퍼
+
+
+-- 데이터 파일과 프라이머리 키(인덱스) 구조
+
+     SHOW VARIABLES LIKE '%myisam%';
+     +---------------------------+----------------------+
+     | Variable_name             | Value                |
+     +---------------------------+----------------------+
+     | myisam_data_pointer_size  | 6                    |
+     | myisam_max_sort_file_size | 107374182400         |
+     | myisam_mmap_size          | 18446744073709551615 |
+     | myisam_recover_options    | OFF                  |
+     | myisam_repair_threads     | 1                    |
+     | myisam_sort_buffer_size   | 38797312             |
+     | myisam_stats_method       | nulls_unequal        |
+     | myisam_use_mmap           | OFF                  |
+     +---------------------------+----------------------+
+
+
+-- MySQL 로그 파일
+
+
+-- 에러 로그 파일
+
+
+-- MySQL이 시작하는 과정과 관련된 정보성 및 에러 메시지
+
+
+-- 마지막으로 종료할 때 비정상적으로 종료된 경우 나타나는 InnoDB의 트랜잭션 복구 메시지
+
+     SHOW VARIABLES LIKE '%innodb_force_recovery%';
+     +-----------------------------+-------+
+     | Variable_name               | Value |
+     +-----------------------------+-------+
+     | innodb_force_recovery       | 0     |
+     +-----------------------------+-------+
+
+
+-- 쿼리 처리 도중에 발생하는 문제에 대한 에러 메시지
+
+
+-- 비정상적으로 종료된 커넥션 메시지(Aborted connection)
+
+     SHOW VARIABLES LIKE '%max_connect_errors%';
+     +------------------------+-------+
+     | Variable_name          | Value |
+     +------------------------+-------+
+     | max_connect_errors     | 100   |
+     +------------------------+-------+
+
+
+-- InnoDB의 모니터링 또는 상태 조회명령(SHOW ENGINE INNODB STATUS 같은)의 결과 메시지
+
+
+-- 제너럴 쿼리 로그 파일(제너럴 로그 파일, General log)
+
+     SHOW VARIABLES LIKE '%general_%';
+     +------------------+---------------------+
+     | Variable_name    | Value               |
+     +------------------+---------------------+
+     | general_log      | OFF                 |
+     | general_log_file | CHANGHEE-NOTEBO.log |
+     +------------------+---------------------+
+
+     SHOW VARIABLES LIKE '%log_output%';
+     +---------------+-------+
+     | Variable_name | Value |
+     +---------------+-------+
+     | log_output    | FILE  |
+     +---------------+-------+
+
+
+-- 슬로우 쿼리 로그
+
+     SHOW VARIABLES LIKE '%long_query_time%';
+     +-----------------+-----------+
+     | Variable_name   | Value     |
+     +-----------------+-----------+
+     | long_query_time | 10.000000 |
+     +-----------------+-----------+
+
+
+-- 슬로우 쿼리 통계
+
+
+-- 실행 빈도 및 누적 실행 시간순 랭킹
+
+
+-- 쿼리별 실행 횟수 및 누적 실행 시간 상세 정보
 
 
 
