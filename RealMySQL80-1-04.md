@@ -894,13 +894,33 @@
 
 -- 버퍼 풀 플러시(Buffer Pool Flush)
 
-   -
+   - MySQL 5.6 버전까지는 InnoDB 스토리지 더티 페이지 플러시 기능이 제대로 작동하지 않아서
+     갑자기 디스크 기록이 폭증해서 MySQL DB 서버의 사용자 쿼리 처리 성능에 영향을 미침.
+   - MySQL 5.7 버전을 거쳐서 MySQL 8.0 버전으로 업그레이드 되면서 대부분의 서비스에서 더티 페이지를
+     디스크에 동기화하는 부분(더티 페이지 플러시)에서 예전버전과 같은 디스크 쓰기 폭증는 발생하지 않음.
+   - 특별히 서비스를 운영할때 성능상의 문제가 없는 상태라면 기존의 시스템 변수값들을 조정할 필요없음.
+
+   - InnoDB 스토리지 엔진은 버퍼 풀에서 아직 디스크로 기록되지 않는 더티 페이지들을 성능상의 악영향 없이
+     디스크에 동기화하기 위해 다음과 같이 2개의 플러시 기능을 백그라운드로 실행.
+
+     . 플러시 리스트(Flush list) 플러시
+     . URL 리스트(URL list) 플러시
+
+
+-- 플러시 리스트 플러시
+
+   - InnoDB 스토리지 엔진은 리두 로그 공간의 재활용을 위해서 주기적으로 오래된 리두 로그 엔트리가 사용하는 공간을 비워야 하는데
+     이때 오래된 리두 로그 공간이 지워지려면 반드시 InnoDB 버퍼 풀의 더티 페이지가 먼저 디스크로 동기화가 되야함.
+   - InnoDB 스토리지 엔진은 주기적으로 플러시 리스트(Flush list) 플러시 함수를 호출해서 플러시 리스트에서
+     오래전에 변경된 데이타 페이지 순서대로 디스크에 동기화하는 작업을 수행하는데 이때 언제부터 얼마나 많은
+     더티 페이지를 한 번에 디스크로 기록하느냐에 따라서 사용자의 쿼리 처리가 악영향을 받지 않으면서 부드럽게 처리가 됨.
 
      SHOW VARIABLES LIKE 'innodb%';
      +------------------------------------------+------------------------+
      | Variable_name                            | Value                  |
      +------------------------------------------+------------------------+
      | innodb_page_cleaners                     | 1                      |
+     | innodb_buffer_pool_instances             | 1                      |
      | innodb_max_dirty_pages_pct_lwm           | 10.000000              |
      | innodb_max_dirty_pages_pct               | 90.000000              |
      | innodb_io_capacity                       | 200                    |
@@ -908,10 +928,72 @@
      | innodb_flush_neighbors                   | 0                      |
      | innodb_adaptive_flushing                 | ON                     |
      | innodb_adaptive_flushing_lwm             | 10                     |
+     | ...                                      | ...                    |
+     +------------------------------------------+------------------------+
+
+   - InnoDB 스토리지 엔진에서 더티 페이지를 디스크로 동기화하는 스레드를 클리너 스레드(Cleaner Thread)라고 하며
+     innodb_page_cleaners 시스템 변수는 클리너 스레드의 개수를 조정함.
+   - InnoDB 스토리지 엔진은 여러 개의 InnoDB 버퍼 풀 인스턴스를 동시에 사용할 수 있는데 innodb_page_cleaners 설정값이
+     버퍼 풀 인스턴스 개수보다 많은 경우에는 innodb_buffer_pool_instances 설정값으로 자동으로 설정 변경함.
+   - 즉 하나의 클리너 스레드가 하나의 버퍼 풀 인스턴스를 처리하도록 자동으로 맞추어 주지만 innodb_page_cleaners 시스템 변수의
+     설정값이 버퍼 풀 인스턴스 개수보다 적은 경우에는 하나의 클리너 스레드가 여러 개의 버퍼 풀 인스턴스를 처리함.
+   - 가능하면 innodb_page_cleaners 설정값은 innodb_buffer_pool_instances 설정값과 동일한 값으로 설정하자.
+
+   - InnoDB 버퍼 풀은 클린 페이지뿐만 아니라 사용자의 DML(INSERT, UPDATE, DELETE)에 의한 변경된 더티 페이지도 함께 가지고 있고
+     InnoDB 버퍼 풀은 한계가 있기 때문에 무한정 더티 페이지를 그대로 유지할 수 없음.
+   - 기본적으로 InnoDB 스토리지 엔진은 전체 버퍼 풀이 가진 페이지의 90%까지 더티 페이지를 가질 수 있는데 때로는 이 값이 너무 높을 수도 있고
+     이런 경우에는 innodb_max_dirty_pages_pct라는 시스템 설정 변수를 이용해 더티 페이지의 비율을 조정할 수 있음.
+   - 일반적으로 InnoDB 버퍼 풀은 더티 페이지를 많이 가지고 있을수록 디스크 쓰기 작업을 버퍼링함으로써 여러 번의 디스크 쓰기를
+     한 번으로 줄이는 효과를 극대화할 수 있고 그래서 innodb_max_dirty_pages_pct 시스템 설정값은 가능하면 기본값을 유지하는 것이 좋다.
+
+   - InnoDB 버퍼 풀에 더티 페이지가 많으면 많을수록 디스크 쓰기 폭발(Disk IO Burst) 현상이 발생할 가능성이 높고
+     InnoDB 스토리지 엔진은 innodb_io_capacity 시스템 변수에 설정된 값을 기준으로 더티 페이지 쓰기를 실행함.
+   - 하지만 디스크로 기록되는 더티 페이지 개수보다 더 많은 더티 페이지가 발생하면 버퍼 풀에 더티 페이지가 계속 증가하게 되고
+     어느 순간 더티 페이지의 비율이 90%를 넘어가면 InnoDB 스토리지 엔진은 급작스럽게 더티 페이지를 디스크로 기록해야 한다고 판단하고
+     그래서 갑자기 디스크 쓰기가 폭증하는 현상이 발생함.
+   - 이 문제를 해결하기 위해서 InnoDB 스토리지 엔진에서는 innodb_max_dirty_pages_pct_lwm이라는 시스템 설정 변수를 이용해
+     일정 수준 이상의 더티 페이지가 발생하면 조금씩 더티 페이지를 디스크로 기록하게 함.
+   - innodb_max_dirty_pages_pct_lwm 시스템 변수의 기본값은 10% 수준인데 만약 더티 페이지의 비율이 얼마 되지 않는 상태에서
+     디스크 쓰기가 많이 발생하고 더티 페이지의 비율이 너무 낮은 상태로 계속 머물러 있다면 innodb_max_dirty_pages_pct_lwm 시스템 변수를
+     조금 더 높은 값으로 조정하는 것도 디스크 쓰기 횟수를 줄이는 효과를 얻을 수 있음.
+
+   - innodb_io_capacity와 innodb_io_capacity_max 시스템 변수는 각 데이터베이스 서버에서 어느 정도의 디스크 읽고 쓰기가 가능하지를 설정하는 값.
+   - innodb_io_capacity는 일반적인 상황에서 디스크가 적절히 처리할 수 있는 수준의 값을 설정하며
+     innodb_io_capacity_max 시스템 변수는 디스크가 최대희 성능을 발휘할 때 오느 정도의 디스크 읽고 쓰기가 가능한지를 설정.
+   - 디스크 읽고 쓰기란 InnoDB 스토리지 엔진의 백그라운드 스레드가 수행하는 디스크 작업을 의미하고 대부분 InnoDB 버퍼 풀의 더티 페이지 쓰기임.
+   - 하지만 InnoDB 스토리지 엔진은 사용자의 쿼리를 처리하기 위해 디스크를 읽기도 해야 하므로 현재 장착된 디스크가
+     초당 1000 IOPS를 처리할 수 있다고 해서 이 값을 그대로 innodb_io_capacity와 innodb_io_capacity_max 시스템 변수에 설정해서는 않됨.
+
+   - 참고 : innodb_io_capacity와 innodb_io_capacity_max 시스템 변수에 1000을 설정한다고 해서 초당 1000번의 디스크 쓰기를 보장하는 것은 아니며
+            InnoDB 스토리지 엔진은 내부적으로 최적화 알고리즘을 가지고 있어서 설정된 값들을 기준으로 적당히 계산된 횟수만큼
+            더티 페이지 쓰기를 하기 때문이며 그래서 innodb_io_capacity와 innodb_io_capacity_max 시스템 변수를 설정하고
+            어느 정도 디스크 쓰기를 하는지 모니터링후에 분석하고 패턴을 관찰하여 익히는 것이 중요함.
+
+   - 관리해야 할 MySQL DB 서버가 많다면 일일이 서버의 트랙필을 봐 가면서 innodb_io_capacity와 innodb_io_capacity_max를 설정하는 것은 번거롭고
+     그래서 InnoDB 스토리지 엔진은 어댑티브 플러시(Adaptive flush)라는 기능을 제공.
+   - 어댑티브 플러시는 innodb_adaptive_flushing 시스템 변수로 커고 끌 수 있는데 기본값은 어댑티브 플러시를 사용하는 것이고
+     어댑티브 플러시 기능이 활성화되면 InnoDB 스토리지 엔진은 단순히 버퍼 풀의 데티 페이지 비율이나 innodb_io_capacity,
+     innodb_io_capacity_max 설정값에 의존하지 않고 새로운 알고리즘으로 사용함.
+   - 더티 페이지를 어느 정도 디스크로 기록해야 할지는 사실 어느 정도 속도로 더티 페이지가 생성되는지를 분석한는 것인데
+     이는 결국 리두 로그의 증가 속도를 분석하는 것과 같고 그래서 어댑티브 클러시 알고리즘은 리두 로그의 증가 속도를 분석해서
+     적절한 수준의 더티 페이지가 버퍼 풀에 유지될 수 있도록 디스크 쓰기를 실행함.
+   - innodb_adaptive_flushing_lwm 시스템 변수의 기본값이 10%인데 이는 10%를 넘어서면 그때부터 어댑티브 플러시 알고리즘을 작동.
+
+   - innodb_flush_neighbors 시스템 변수는 더티 페이지를 디스크에 기록할 때 디스크에서 근접한 페이지 중에서 더티 페이지가 있다면
+     InnoDB 스토리지 엔진이 함께 묶어서 디스크로 기록하게 해주는 기능을 활성화할지 결정함.
+   - 예전에 많이 사용하던 하드디스크(HDD)의 경우 디스크 읽고 쓰기는 매우 고비용의 작업이며 그래서 많은 데이터베이스 서버들은
+     한 번이라도 디스크 읽고 쓰기를 줄이기 위해 많은 노력을 하였고 이웃 페이지들의 동시 쓰기(innodb_flush_neighbors)는 노력의 결과임.
+   - 데이터의 저장을 하드디스크로 하고 있다면 innodb_flush_neighbors 시스템 변수를 1또는 2로 설정해서 활성화하는 것이 좋지만
+     요즘은 대부분 솔리드 스테이트 드라이브(SSD)를 사용하기 때문에 기본값이 비활성 모드로 유지하는 것이 좋음.
+
+
+-- URL 리스트 플러시
+
+     SHOW VARIABLES LIKE '%innodb_lru_scan_depth%';
+     +------------------------------------------+------------------------+
+     | Variable_name                            | Value                  |
+     +------------------------------------------+------------------------+
      | innodb_lru_scan_depth                    | 1024                   |
-     | .                                        | .                      |
-     | .                                        | .                      |
-     | .                                        | .                      |
      +------------------------------------------+------------------------+
 
 
@@ -927,16 +1009,14 @@
      | innodb_buffer_pool_load_abort       | OFF            |
      | innodb_buffer_pool_dump_at_shutdown | ON             |
      | innodb_buffer_pool_load_at_startup  | ON             |
-     | .                                   | .              |
-     | .                                   | .              |
-     | .                                   | .              |
+     | ...                                 | ...            |
      +-------------------------------------+----------------+
 
      SET GLOBAL innodb_buffer_pool_dump_now=ON;
 
      SET GLOBAL innodb_buffer_pool_load_now=ON;
 
-     SHOW STATUS LIKE '%innodb_buffer_pool_dump_status%' \G
+     SHOW STATUS LIKE 'innodb_buffer_pool_dump_status' \G
      *************************** 1. row ***************************
      Variable_name: Innodb_buffer_pool_dump_status
              Value: Dumping of buffer pool not started
