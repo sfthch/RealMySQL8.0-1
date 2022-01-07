@@ -175,7 +175,8 @@ MySQL 5.7 버전부터 지원되기 시작한 데이터 암호화 기능은 처�
   keyring_file_data 설정의 경로는 오직 하나의 MySQL 서버만 참조해야 한다.
   하나의 리눅스 서버에 MySQL 서버가 2개 이상 실행 중이라면 각 MySQL 서버가 서로 다른 키링 파일을 사용하도록 설정해야 한다.
 
-  early-plugin-load = keyring_file.so keyring_file_data = /very/secure/directory/tde_master.key
+  early-plugin-load = keyring_file.so
+  keyring_file_data = /very/secure/directory/tde_master.key
 
   MySQL 서버의 설정 파일이 준비되면 MySQL 서버를 재시작하면 자동으로 keyring_file 플러그인이초기화된다.
   keyring_file 플러그인의 초기화 여부는 다음과 같이 SHOW PLUGINS 명령으로 확인 가능하다.
@@ -188,14 +189,13 @@ MySQL 5.7 버전부터 지원되기 시작한 데이터 암호화 기능은 처�
   플러그인만 초기화된 상태일 뿐, 아직 마스터 키를 사용한적이 없기 때문에 실제 키링 파일의 내용은 비어 있다.
   데이터 암호화 기능을 사용하는 테이블을 생성하거나 마스터 로테이션을 실행하면 키링 파일의 마스터 키가 초기화된다.
 
-  linux) ls -alh tde_master. key -rw-r----- 1 matt OB 7 27 14:24 tde_master. key
+  linux) ls -alh tde_master.key
+  -rw-r----- 1 matt OB 7 27 14:24 tde_master.key
 
   mysql) ALTER INSTANCE ROTATE INNODB MASTER KEY;
 
-  | 202 Real MySQL 8.0: 개발자와 DBA를 위한 MySQL 실전 가이드
-
-
-  linux) ls -alh tde_master. key 1 matt 1878 7 27 14:24 tde_master.key -w-r-----
+  linux) ls -alh tde_master.key
+  -w-r-----  1 matt 1878 7 27 14:24 tde_master.key
 
   참고 : ALTER INSTANCE ROTATE INNODB MASTER KEY 명령을 실행하고 바이너리 로그의 내용을 살펴보면 다음과 같이 표시된다.
          바이너리 로그의 내용에서 "ALTER INSTANCE ROTATE INNODB MASTER KEY" 이벤트는 Event_type 칼럼값이 "Query"인 것을 알 수 있다.
