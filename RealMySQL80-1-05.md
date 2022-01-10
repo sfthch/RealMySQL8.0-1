@@ -789,7 +789,7 @@
 
   트랜잭션의 격리 수준(isolation level)이란 여러 트랜잭션이 동시에 처리될 때
   특정 트랜잭션이 다른 트랜잭션에서 변경하거나 조회하는 데이터를 볼 수 있게 허용할지 말지를 결정하는 것이다.
-  격리 수준은 크게 "READ UNCOMMITTED". "READ COMMITTED", "REPEATABLE READ"."SERIALIZABLE"의 4가지로 나뉜다.
+  격리 수준은 크게 "READ UNCOMMITTED", "READ COMMITTED", "REPEATABLE READ", "SERIALIZABLE"의 4가지로 나뉜다.
   "DIRTY READ"라고도 하는 READ UNCOMMITTED는 일반적인 데이터베이스에서는 거의 사용하지 않고,
   SERIALIZABLE 또한 동시성이 중요한 데이터베이스에서는 거의 사용되지 않는다.
   4개의 격리 수준에서 순서대로 뒤로 갈수록 각 트랜잭션 간의 데이터 격리(고립) 정도가 높아지며,
@@ -812,8 +812,8 @@
   SQL-92 또는 SQL-99 표준에 따르면 REPEATABLE READ 격리 수준에서는 PHANTOM READ가 발생할 수 있지만,
   InnoDB에서는 독특한 특성 때문에 REPEATABLE READ 격리 수준에서도PHANTOM READ가 발생하지 않는다.
   DIRTY READ나 NON-REPEATABLE READ, PHANTOMREAD에 대한 내용은 각 격리 수준별 설명에서 소개하겠다.
-  일반적인 온라인 서비스 용도의 데이터베이스는 READ COMMITTED와 REPEATABLE REAT 중 하나를 사용한다.
-  오라클 같은 DBMS에서는 주로 READ COMMITTED 수준을 많이 사용하며, MySQL에서는 REPEATABLE READ를 주로 사한다.
+  일반적인 온라인 서비스 용도의 데이터베이스는 READ COMMITTED와 REPEATABLE READ 중 하나를 사용한다.
+  오라클 같은 DBMS에서는 주로 READ COMMITTED 수준을 많이 사용하며, MySQL에서는 REPEATABLE READ를 주로 사용한다.
   여기서 설명하는 SQL 예제는 모두 AUTOCOMMIT이 OFF인 상태(SET autocommit=OFF)에서만 테스트할 수 있다.
 
 5.4.1 READ UNCOMMITTED
@@ -829,6 +829,7 @@
       |                     emp_no first_naine                            |
       |    INSERT(Lara)     499999 Francesca                              |
       +-------------------> 500000 Lara                                   |
+      |                                                                   |
       |                     테이블 (employees)                            |
       |                     emp_no first_name  SELECT WHERE emp_no=500000 |
       |                     499999 Francesca   +--------------------------|
@@ -941,7 +942,7 @@
 
   가끔 사용자 중에서 트랜잭션 내에서 실행되는 SELECT 문장과 트랜잭션 없이 실행되는 SELECT 문장의 차이를 혼동하는 경우가 있다.
   READ COMMITTED 격리 수준에서는 트랜잭션 내에서 실행되는 SELECT 문장과 트랜잭션 외부에서 실행되는 SELECT 문장의 차이가 별로 없다.
-  하지만 REPEATABLEREAD 격리 수준에서는 기본적으로 SELECT 쿼리 문장도 트랜잭션 범위 내에서만 작동한다.
+  하지만 REPEATABLE READ 격리 수준에서는 기본적으로 SELECT 쿼리 문장도 트랜잭션 범위 내에서만 작동한다.
   즉, STARTTRANSACTION(또는 BEGIN) 명령으로 트랜잭션을 시작한 상태에서 온종일 동일한 쿼리를 반복해서 실행해봐도 동일한 결과만 보게 된다
   (아무리 다른 트랜잭션에서 그 데이터를 변경하고 COMMIT을 실행한다고 하더라도 말이다).
   별로 중요하지 않은 차이처럼 보이지만 이런 문제로 데이터의 정합성이 깨지고 그로 인해 애플리케이션에 버그가 발생하면 찾아내기가 쉽지 않다.
@@ -961,7 +962,7 @@
   모든 InnoDB의 트랜잭션은 고유한 트랜잭션 번호(순차적으로 증가하는 값)를 가지며,
   언두 영역에 백업된 모든 레코드에는 변경을 발생시킨 트랜잭션의 번호가 포함돼 있다.
   그리고 언두 영역의 백업된 데이터는 InnoDB 스토리지 엔진이 불필요하다고 판단하는 시점에 주기적으로 삭제한다.
-  REPEATABLEREAD 격리 수준에서는 MVCC를 보장하기 위해 실행 중인 트랜잭션 가운데 가장 오래된 트랜잭션 빈초보다
+  REPEATABLE READ 격리 수준에서는 MVCC를 보장하기 위해 실행 중인 트랜잭션 가운데 가장 오래된 트랜잭션 번호보다
   트랜잭션 번호가 앞선 언두 영역의 데이터는 삭제할 수가 없다.
   그렇다고 가장 오래된 트랜잭션 번호 이전의 트랜잭션에 의해 변경된 모든 언두 데이터가 필요한 것은 아니다.
   더 정확하게는 특정 트랜잭션 번호의 구간 내에서 백업된 언두 데이터가 보존돼야 한다.
@@ -1054,7 +1055,7 @@
   그림 5.7 에서 사용자 B는 BEGIN 명령으로 트랜잭션을 시작한 후 SELECT를 수행한다.
   그러므로 그림 5.6의 REPEATABLE READ에서 배운 것치럼 두 번의 SELECT 쿼리 결과는 똑같아야 한다.
   하지만 그림 5.7에서 사용자 B가 실행하는 두 번의 SELECT ... FOR UPDATE 쿼리 결과는 서로 다르다.
-  이렇게 다른 트랜전에서 수행한 변경 작업에 의해 레코드가 보였다 안 보였다 하는 현상을 READ(또는 PHANTOM ROW)한다.
+  이렇게 다른 트랜잭션에서 수행한 변경 작업에 의해 레코드가 보였다 안 보였다 하는 현상을 PHANTOM READ(또는 PHANTOM ROW)한다.
   SELECT ... FOR UPDATE 쿼리는 SELECT하는 레코드에 쓰기 잠금을 걸야 하는데, 언두 레코드에는 잠금을 걸 수 없다.
   그래서 SELECT ... FOR UPDATE나 SELECT ... LOCK IN SHAKE MODE로 조회되는 레코드는
   언두 영역의 변경 전 데이터를 가져오는 것이 아니라 레코드의 값을 가져오게 되는 것이다.
