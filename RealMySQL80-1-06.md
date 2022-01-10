@@ -9,7 +9,7 @@ MySQL 서버에서 디스크에 저장된 데이터 파일의 크기는 일반�
 MySQL 서버에서 사용 가능한 압축 방식은 크게 테이블 압축과 페이지 압축의 두 가지 종류로 구분할 수 있는데,
 두 방식은 매우 다르게 작동하므로 하나씩 구분해서 살펴보자.
 
-6. 1 페이지 압축
+6.1 페이지 압축
 
   페이지 압축은 “Transparent Page Compression”이라고도 불리는데,
   MySQL 서버가 디스크에 저장하는 시점에 데이터 페이지가 압축되어 저장되고,
@@ -79,7 +79,7 @@ MySQL 서버에서 사용 가능한 압축 방식은 크게 테이블 압축과 
   mysql) ALTER TABLE t1 COMPRESSION="zlib";
          OPTIMIZE TABLE t1;
 
-6. 2 테이블 압축
+6.2 테이블 압축
 
   테이블 압축은 운영체제나 하드웨어에 대한 제약 없이 사용할 수 있기 때문에 일반적으로 더 활용도가높은 편이다.
   테이블 압축은 우선 디스크의 데이터 파일 크기를 줄일 수 있기 때문에 그만큼의 이득은있다.
@@ -127,7 +127,7 @@ MySQL 서버에서 사용 가능한 압축 방식은 크게 테이블 압축과 
   KEY_BLOCK_SIZE에 명시된 옵션값은 KB 단위를 설정한다.
   그래서 앞의 테이블의 KEY_BLOCK_SIZE는 8KB를 의미한다.
 
-  참고 : innodb_file_per_table 시스템 변수가 0인 상태에서 제너럴 테이블스페이스(General Tablespace)에
+  참고 : innodb_file_per_table 시스템 변수가 ON인 상태에서 제너럴 테이블스페이스(General Tablespace)에
          생성되는 테이블도 테이블 압축을 사용할 수 있다.
          하지만 제너럴 테이블스페이스의 FILE_BLOCK_SIZE에 의해 압축을 사용할 수도 있고 그러지 못할 수도 있다.
          제너럴 테이블스페이스를 사용하는 테이블에 대해 압축을 고려 중이라면
@@ -214,9 +214,16 @@ MySQL 서버에서 사용 가능한 압축 방식은 크게 테이블 압축과 
            KEY_BLOCK_SIZE=4
          ;
 
-  -- // 테스트를 실행하기 전에 innodb_tmp_per_index_enabled 시스템 변수를 ON으로 변경해야
+  -- // 테스트를 실행하기 전에 innodb_cmp_per_index_enabled 시스템 변수를 ON으로 변경해야
   -- // 인덱스별로 압축 실행 횟수와 성공 횟수가 기록된다.
   mysql> SET GLOBAL innodb_cmp_per_index_enabled=ON;
+
+         SHOW VARIABLES LIKE '%innodb_cmp_per_index_enabled%';
+         +------------------------------+-------+
+         | Variable_name                | Value |
+         +------------------------------+-------+
+         | innodb_cmp_per_index_enabled | ON    |
+         +------------------------------+-------+
 
   -- // employees 테이블의 데이터를 그대로 압축 테스트 테이블로 저장
   mysql) INSERT INTO employees_comp4k SELECT * FROM employees;
@@ -338,6 +345,12 @@ MySQL 서버에서 사용 가능한 압축 방식은 크게 테이블 압축과 
                                        기본값은 6으로, 압축 속도와 압축률 모두 중간 정도로 선택한 값이다.
                                        여기서 압축 속도는 CPU 자원 소모량과 동일한 의미다.
                                        즉, 압축 속도가 빨라진다는 것은 CPU 자원을 그만큼 적게 사용한다는 의미다.
+                                       SHOW VARIABLES LIKE '%innodb_compression_level%';
+                                       +--------------------------+-------+
+                                       | Variable_name            | Value |
+                                       +--------------------------+-------+
+                                       | innodb_compression_level | 6     |
+                                       +--------------------------+-------+
     - innodb_compression_failure_threshold_pct와
       innodb_compression_pad_pct_max : 테이블 단위로 압축 실패율이 innodb_compression_failure_threshold_pct 시스템 설정값보다 커지면
                                        압축을 실행하기 전 원본 데이터 페이지의 끝에 의도적으로 일정 크기의 빈 공간을 추가한다.
@@ -347,6 +360,18 @@ MySQL 서버에서 사용 가능한 압축 방식은 크게 테이블 압축과 
                                        추가할 수 있는 패딩 공간의 최대 크기는 innodb_compression_pad_pct_max 시스템 설정값 이상을 넘을 수 없다.
                                        innodb_compression_pad_pct_max 시스템 설정값에는 % 값을 설정하는데,
                                        전체 데이터 페이지 크기 대비 패딩 공간의 비율을 의미한다.
+                                       SHOW VARIABLES LIKE '%innodb_compression_failure_threshold_pct%';
+                                       +------------------------------------------+-------+
+                                       | Variable_name                            | Value |
+                                       +------------------------------------------+-------+
+                                       | innodb_compression_failure_threshold_pct | 5     |
+                                       +------------------------------------------+-------+
+                                       SHOW VARIABLES LIKE '%innodb_compression_pad_pct_max%';
+                                       +--------------------------------+-------+
+                                       | Variable_name                  | Value |
+                                       +--------------------------------+-------+
+                                       | innodb_compression_pad_pct_max | 50    |
+                                       +--------------------------------+-------+
     - innodb_log_compressed_pages    : MySQL 서버가 비정상적으로 종료됐다가 다시 시작되는 경우 압축 알고리(zlib)의 버전 차이가 있더라도
                                        복구 과정이 실패하지 않도록 InnoDB 스토리지 엔진은 압축된 데이터 페이자를 그대로 리두 로그에 기록한다.
                                        이는 압축 알고리즘을 업그레이드할 때 도움이 되지만,
@@ -355,4 +380,10 @@ MySQL 서버에서 사용 가능한 압축 방식은 크게 테이블 압축과 
                                        더티 페이지가 한꺼번에 많이 기록되는 패턴으로 바뀌었다면
                                        innodb_log_Compressed_pages 시스템 변수를 OFF로 설정한 후 모니터링해보는 것이 좋다.
                                        innodb_log_compressed_pages 시스템 변수의 기본값은 ON인데, 가능하면 기본값인 ON 상태를 유지하자.
+                                       SHOW VARIABLES LIKE '%innodb_log_compressed_pages%';
+                                       +-----------------------------+-------+
+                                       | Variable_name               | Value |
+                                       +-----------------------------+-------+
+                                       | innodb_log_compressed_pages | ON    |
+                                       +-----------------------------+-------+
 ```
