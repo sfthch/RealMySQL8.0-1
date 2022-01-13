@@ -85,7 +85,7 @@ MySQL 서버에서 사용 가능한 압축 방식은 크게 테이블 압축과 
   mysql> CREATE TABLE t1 (CI INT) COMPRESSION="zlib";
 
   -- // 테이블 변경 시
-  mysql) ALTER TABLE t1 COMPRESSION="zlib";
+  mysql> ALTER TABLE t1 COMPRESSION="zlib";
          OPTIMIZE TABLE t1;
 
 6.2 테이블 압축
@@ -130,7 +130,7 @@ MySQL 서버에서 사용 가능한 압축 방식은 크게 테이블 압축과 
          ;
 
   -- // KEY_BLOCK_SIZE 옵션만 명시
-  mysql) CREATE TABLE compressed_table
+  mysql> CREATE TABLE compressed_table
          ( C1 INT PRIMARY KEY
          ) KEY_BLOCK_SIZE=8
          ;
@@ -214,10 +214,10 @@ MySQL 서버에서 사용 가능한 압축 방식은 크게 테이블 압축과 
 
   예제 데이터베이스의 employees 테이블을 이용해 간단히 KEY_BLOCK_SIZE를 선택하는 예시를 살펴보자.
 
-  mysql) USE employees;
+  mysql> USE employees;
 
   -- // employees 테이블과 동일한 구조로, 테이블 압축을 사용하는 예제 테이블을 생성
-  mysql) CREATE TABLE employees_comp4k
+  mysql> CREATE TABLE employees_comp4k
          ( emp_no         int             NOT NULL
          , birth_date     date            NOT NULL
          , first_name     varchar(14)     NOT NULL
@@ -243,7 +243,7 @@ MySQL 서버에서 사용 가능한 압축 방식은 크게 테이블 압축과 
          +------------------------------+-------+
 
   -- // employees 테이블의 데이터를 그대로 압축 테스트 테이블로 저장
-  mysql) INSERT INTO employees_comp4k SELECT * FROM employees;
+  mysql> INSERT INTO employees_comp4k SELECT * FROM employees;
 
   -- // 인덱스별로 압축 횟수와 성공 횟수, 압축 실패율을 조회
   mysql> SELECT table_name
@@ -297,7 +297,7 @@ MySQL 서버에서 사용 가능한 압축 방식은 크게 테이블 압축과 
   성능에 민감한 서비스라면 employees 테이블은 압축을 적용하지 않는 것이 좋다고 판단할 수 있다.
   물론 압축 실패율이 높다고 해서 실제 디스크의 데이터 파일 크기가 줄어들지 않는다는 뜻은 아니다.
 
-  linux) ls -alh data/employees/employees.ibd
+  linux> ls -alh data/employees/employees.ibd
          -rw-r----- 1 matt dba 30M 7 26 15:44 employees.ibd
          -rw-r----- 1 matt dba 20M 7 26 21:54 employees_comp4k.ibd
          -rw-r----- 1 matt dba 21M 7 26 22:05 employees_comp8k.ibd
