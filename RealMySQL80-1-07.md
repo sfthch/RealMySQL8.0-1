@@ -274,7 +274,7 @@ MySQL 5.7 버전부터 지원되기 시작한 데이터 암호화 기능은
   linux) ls -alh tde_master.key
          -rw-r----- 1 matt OB 7 27 14:24 tde_master.key
 
-  mysql) ALTER INSTANCE ROTATE INNODB MASTER KEY;
+  mysql> ALTER INSTANCE ROTATE INNODB MASTER KEY;
 
   linux) ls -alh tde_master.key
          -w-r-----  1 matt 1878 7 27 14:24 tde_master.key
@@ -363,7 +363,7 @@ MySQL 5.7 버전부터 지원되기 시작한 데이터 암호화 기능은
   그래서 응용 프로그램에서 암호화된 칼럼은 인덱스를 생성하더라도 인덱스의 기능을 100% 활용할 수 없다.
   다음과 같은 테이블의 인덱스를 한번 생각해보자.
 
-  mysql) CREATE TABLE app_user
+  mysql> CREATE TABLE app_user
          ( id             BIGINT
          , enc_birth_year VARCHAR (50) /* 응용 프로그램에서 미리 암호화해서 저장된 칼럼 *
          ...
@@ -558,7 +558,7 @@ MySQL 5.7 버전부터 지원되기 시작한 데이터 암호화 기능은
 
   바이너리 로그 암호화 키는 다음과 같이 변경(로테이션)할 수 있다.
 
-  mysql) ALTER INSTANCE ROTATE BINLOG MASTER KEY;
+  mysql> ALTER INSTANCE ROTATE BINLOG MASTER KEY;
 
   바이너리 로그 암호화 키가 변경되면 다음의 과정을 거친다.
 
