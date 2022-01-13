@@ -601,7 +601,7 @@ MySQL 5.7 버전부터 지원되기 시작한 데이터 암호화 기능은
   mysqlbinlog 도구를 이용해 암호화된 바이너리 로그 파일의 내용을 SQL 문장으로 한번 풀어보면
   다음과 같이 암호화된 바이너리 로그 파일을 직접 열어 볼 수는 없다는 에러 메시지를 출력한다.
 
-  linux) mysqlbinlog -vvv mysql-bin.000011
+  linux> mysqlbinlog -vvv mysql-bin.000011
          Enter password:
          /*!50530 SET COSESSION.PSEUDO_SLAVE_MODE=1*/;
          /*!50003 SET GOLD_COMPLETION_TYPE=COCOMPLETION_TYPE, COMPLETION_TYPE=0*/;
@@ -627,7 +627,7 @@ MySQL 5.7 버전부터 지원되기 시작한 데이터 암호화 기능은
 
   211 ==============================================================================================================
 
-  linux) mysqlbinlog --read-from-remote-server -uroot -p -vuv mysql-bin.000011
+  linux> mysqlbinlog --read-from-remote-server -uroot -p -vuv mysql-bin.000011
          Enter password:
          ...
          BINLOG
