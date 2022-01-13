@@ -133,6 +133,9 @@ git rm
   : 원격 저장소와 로컬 저장소에 있는 파일을 삭제한다.
 git rm --cached
   : 원격 저장소에 있는 파일을 삭제한다. 로컬 저장소에 있는 파일은 삭제하지 않는다.
+git clean -d -f -f
+  : git rm 파일 삭제후 에러 발생시
+
 
 git checkout <branch>
 git branch <branchname> origin/<branch>
@@ -222,7 +225,6 @@ git blame <filename>
   : 파일 히스토리가 나타나는데,
     해당 수정사항을 포함하는 commit id, 수정한 사람, 수정 일시, 줄 번호, 수정 내용을 볼 수 있다.
 
-
 git checkout -- <filename>
   : 특정 파일의 수정사항 되돌리기
 git reset --hard
@@ -253,5 +255,11 @@ git config --global core.excludesfile ~/.gitignore
 git config --global core.excludesfile C:\.gitignore
 
 git config --global core.editor '"C:\Program Files\EditPlus\editplus.exe"'
+
+
+warning: LF will be replaced by CRLF in bora.txt.
+The file will have its original line endings in your working directory
+
+git config --global core.autocrlf true
 
 ```
