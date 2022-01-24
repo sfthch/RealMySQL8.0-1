@@ -209,4 +209,11 @@ git clone 저장소URL
 git reset -hard 로그커밋명
   - 과거로 되돌리기
 
+git stash
+  - 임시로 변경사항 저장
+git stash pop
+  - 임시 저장한 내용을 가져오기
+git stash list
+  - 임시 저장 목록
+
 ```
