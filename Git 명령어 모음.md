@@ -98,7 +98,7 @@ git push -u realmysql main
 git push
   - 원격저장소[Repository]에 local repository[Working Directory]의 commit 내용을 올림
   - git push --force : 로컬의 내역 강제 push
-  - git push realmysql --delete sub1 : 원격프랜치 삭제
+  - git push realmysql --delete sub1 : 원격브랜치 삭제
 
 git pull
   - 원격저장소[Repository]의 내용을 가져와서(fetch) local repository[Working Directory]에 합침(merge)
