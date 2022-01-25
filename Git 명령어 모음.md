@@ -206,8 +206,10 @@ git clone 저장소URL
 
 [되돌리기]
 
-git reset -hard 로그커밋명
+git reset --hard 로그커밋명
   - 과거로 되돌리기
+git restore 파일명
+  - 작업내용 취소
 
 git stash
   - 임시로 변경사항 저장
@@ -215,5 +217,8 @@ git stash pop
   - 임시 저장한 내용을 가져오기
 git stash list
   - 임시 저장 목록
+
+git clean -fd
+  - 저장소에서 추적되지 않는 파일 삭제하기
 
 ```
