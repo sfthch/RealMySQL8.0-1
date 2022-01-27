@@ -109,10 +109,10 @@ Link: [Google][googlelink]
 * 이메일링크: <address@example.com>
 
 
-*single asterisks*
-_single underscores_
-**double asterisks**
-__double underscores__
+*single asterisks*  
+_single underscores_  
+**double asterisks**  
+__double underscores__  
 ~~cancelline~~
 
 
