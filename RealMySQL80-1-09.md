@@ -658,15 +658,25 @@ EXPLAIN 명령의 결과에는 상당히 많은 정보가 출력된다.
   
   정렬 방법 읽어야 할 건수조인 횟수 정렬해야 할 대상 건수인덱스 사용 tb_test2: 10건tb test1:10건 10번 0건조인의 드라이빙 테이블만 정렬tb_test2: 1000건tb test1: 10건 10번 1000건(tb_test2 테이블의 레코드 스만큼 정렬 필요) 임시 테이블 사용 후 정렬tb_test2: 1000건tb_test1: 100건 1,000번 1000건(tb_test2 테이블의 레코 (조인된 결과 레코드 건수를 트드 건수만큼 조인 발생) 정렬해야 함)
   
-  어느 테이블이 먼저 드라이빙되어 조인되는지도 중요하지만 어떤 정렬 방식으로 처리되는지는 더 큰 성능 차이를 만든다. 가능하다면 인덱스를 사용한 정렬로 유도하고, 그렇지 못하다면 최소한 드라이테이블만 정렬해도 되는 수준으로 유도하는 것도 좋은 튜닝 방법이라고 할 수 있다.
+  어느 테이블이 먼저 드라이빙되어 조인되는지도 중요하지만 어떤 정렬 방식으로 처리되는지는 더 큰 성능 차이를 만든다.
+  가능하다면 인덱스를 사용한 정렬로 유도하고,
+  그렇지 못하다면 최소한 드라이테이블만 정렬해도 되는 수준으로 유도하는 것도 좋은 튜닝 방법이라고 할 수 있다.
   
-  참고인덱스를 사용하지 못하고 별도로 Filesort 작업을 거쳐야 하는 쿼리에서 LIMIT 조건이 아무런 도움이 되지 못하는 것은 아니다. 정렬할 대상 레코드가 1,000건인 쿼리에 "LIMIT 10"이라는 조건이 있다면 MySQL 서버는 1,000건의 레코드를 모두 정렬하는 것이 아니라 필요한 순서(ASC 또는 DESC)대로 정렬해서 상위 10건만 정렬이 채워지면 정렬을 멈추고 결과를 반환한다. 하지만 MySQL 서버는 정렬을 위해 퀵 소트와 힙 소트 알고리즘을 사용한다. 이는 "LIMIT 10"을 만족하는 상위 10건을 정렬하기 위해 더 많은 작업이 필요할 수도 있음을 의미한다.
+  참고인덱스를 사용하지 못하고 별도로 Filesort 작업을 거쳐야 하는 쿼리에서 LIMIT 조건이 아무런 도움이 되지 못하는 것은 아니다.
+  정렬할 대상 레코드가 1,000건인 쿼리에 "LIMIT 10"이라는 조건이 있다면 
+  MySQL 서버는 1,000건의 레코드를 모두 정렬하는 것이 아니라 
+  필요한 순서(ASC 또는 DESC)대로 정렬해서 상위 10건만 정렬이 채워지면 정렬을 멈추고 결과를 반환한다.
+  하지만 MySQL 서버는 정렬을 위해 퀵 소트와 힙 소트 알고리즘을 사용한다.
+  이는 "LIMIT 10"을 만족하는 상위 10건을 정렬하기 위해 더 많은 작업이 필요할 수도 있음을 의미한다.
   
-  결론적으로, 인덱스를 사용하지 못하는 쿼리를 페이징 처리에 사용하는 경우 LIMIT으로 5~10건만 조회한다고 하더라도 쿼리가 기대만큼 아주 빨라지지는 않는다.
+  결론적으로, 인덱스를 사용하지 못하는 쿼리를 페이징 처리에 사용하는 경우 
+  LIMIT으로 5~10건만 조회한다고 하더라도 쿼리가 기대만큼 아주 빨라지지는 않는다.
   
   9.2.3.4 정렬 관련 상태 변수
   
-  MySQL 서버는 처리하는 주요 작업에 대해서는 해당 작업의 실행 횟수를 상태 변수로 저장한다. 정들과 관련해서도 지금까지 몇 건의 레코드나 정렬 처리를 수행했는지, 소트 버퍼 간의 병합 작업(멀티지)은 몇 번이나 발생했는지 등을 다음과 같은 명령으로 확인해 볼 수 있다.
+  MySQL 서버는 처리하는 주요 작업에 대해서는 해당 작업의 실행 횟수를 상태 변수로 저장한다.
+  정들과 관련해서도 지금까지 몇 건의 레코드나 정렬 처리를 수행했는지,
+  소트 버퍼 간의 병합 작업(멀티지)은 몇 번이나 발생했는지 등을 다음과 같은 명령으로 확인해 볼 수 있다.
   
   mysql> FLUSH STATUS; mysql> SHOW STATUS LIKE 'Sort%'; { Variable_name { Value {
 
@@ -680,7 +690,8 @@ EXPLAIN 명령의 결과에는 상당히 많은 정보가 출력된다.
   
   Sort_range는 인덱스 레인지 스캔을 통해 검색된 결과에 대한 정렬 작업 횟수다.
   
-  Sort_scan은 풀 테이블 스캔을 통해 검색된 결과에 대한 정렬 작업 횟수다. Sort_scan과 Sort_range는 둘 다 정렬 작업 횟수를 누적하고 있는 상태 값이다.
+  Sort_scan은 풀 테이블 스캔을 통해 검색된 결과에 대한 정렬 작업 횟수다.
+  Sort_scan과 Sort_range는 둘 다 정렬 작업 횟수를 누적하고 있는 상태 값이다.
   
   Sort_rows는 지금까지 정렬한 전체 레코드 건수를 의미한다.
   
@@ -692,216 +703,275 @@ EXPLAIN 명령의 결과에는 상당히 많은 정보가 출력된다.
   
   전체 정렬된 레코드 건수는 300,024건(Sort_rows 상태 변수 값)
 
-9.2.4 GROUP BY 22/
-
-  GROUP BY 또한 ORDER BY와 같이 쿼리가 스트리밍된 처리를 할 수 없게 하는 처리 중 하나다. GROUP BY 절이 있는 쿼리에서는 HAVING 절을 사용할 수 있는데, HAVING 절은 GROUP BY 결과에 대해 필터링 역할을 수행한다. GROUP BY에 사용된 조건은 인덱스를 사용해서 처리될 수 없으므로 HAVING 절을 튜닝하려고 인덱스를 생성하거나 다른 방법을 고민할 필요는 없다.
+9.2.4 GROUP BY
   
-  GROUP BY 작업도 인덱스를 사용하는 경우와 그렇지 못한 경우로 나눠 볼 수 있다. 인덱스를 이용할 때는 인덱스를 차례대로 읽는 인덱스 스캔 방법과 인덱스를 건너뛰면서 읽는 루스 인덱스 스캔이라는 방법으로 나뉜다. 그리고 인덱스를 사용하지 못하는 쿼리에서 GROUP BY 작업은 임시 테이블을 사용한다.
+  GROUP BY 또한 ORDER BY와 같이 쿼리가 스트리밍된 처리를 할 수 없게 하는 처리 중 하나다.
+  GROUP BY 절이 있는 쿼리에서는 HAVING 절을 사용할 수 있는데,
+  HAVING 절은 GROUP BY 결과에 대해 필터링 역할을 수행한다.
+  GROUP BY에 사용된 조건은 인덱스를 사용해서 처리될 수 없으므로 
+  HAVING 절을 튜닝하려고 인덱스를 생성하거나 다른 방법을 고민할 필요는 없다.
+  
+  GROUP BY 작업도 인덱스를 사용하는 경우와 그렇지 못한 경우로 나눠 볼 수 있다.
+  인덱스를 이용할 때는 인덱스를 차례대로 읽는 인덱스 스캔 방법과 인덱스를 건너뛰면서 읽는 루스 인덱스 스캔이라는 방법으로 나뉜다.
+  그리고 인덱스를 사용하지 못하는 쿼리에서 GROUP BY 작업은 임시 테이블을 사용한다.
 
   305 ================================================================================================================================
 
 
 9.2.4.1 인덱스 스캔을 이용하는 GROUP BY(타이트 인덱스 스캔)
 
-ORDER BY의 경우와 마찬가지로 조인의 드라이빙 테이블에 속한 칼럼만 이용해 그루핑할 때 GPGP :럼으로 이미 인덱스가 있다면 그 인덱스를 차례대로 읽으면서 그루핑 작업을 수행하고 그 결과로 기을 처리한다. GROUP BY가 인덱스를 사용해서 처리된다 하더라도 그룹 함수(Aggregation functic의 그룹값을 처리해야 해서 임시 테이블이 필요할 때도 있다. GROUP BY가 인덱스를 통해 처리되는 3는 이미 정렬된 인덱스를 읽는 것이므로 쿼리 실행 시점에 추가적인 정렬 작업이나 내부 임시로은 필요하지 않다. 이러한 그루핑 방식을 사용하는 쿼리의 실행 계획에서는 Extra 칼럼에 별도로 -BY 관련 코멘트("Using index for group-by)나 임시 테이블 사용 또는 정렬 관련 코멘트 Ttemporary, Using filesort")가 표시되지 않는다.
+  ORDER BY의 경우와 마찬가지로 조인의 드라이빙 테이블에 속한 칼럼만 이용해 그루핑할 때 GPGP :럼으로 이미 인덱스가 있다면
+  그 인덱스를 차례대로 읽으면서 그루핑 작업을 수행하고 그 결과로 기을 처리한다.
+  GROUP BY가 인덱스를 사용해서 처리된다 하더라도 그룹 함수
+  (Aggregation functic의 그룹값을 처리해야 해서 임시 테이블이 필요할 때도 있다.
+   GROUP BY가 인덱스를 통해 처리되는 3는 이미 정렬된 인덱스를 읽는 것이므로 
+   쿼리 실행 시점에 추가적인 정렬 작업이나 내부 임시로은 필요하지 않다.
+   이러한 그루핑 방식을 사용하는 쿼리의 실행 계획에서는 
+   Extra 칼럼에 별도로 -BY 관련 코멘트("Using index for group-by")나 
+   임시 테이블 사용 또는 정렬 관련 코멘트 "Ttemporary, Using filesort")가 표시되지 않는다.
 
 9.2.4.2 루스 인덱스 스캔을 이용하는 GROUP BY
 
-루스(Loose) 인덱스 스캔 방식은 인덱스의 레코드를 건너뛰면서 필요한 부분만 읽어서 가져오는의미하는데, 옵티마이저가 루스 인덱스 스캔을 사용할 때는 실행 계획의 Extra 칼럼에 Tsing intefor group-by" 코멘트가 표시된다. 루스 인덱스 스캔을 사용하는 다음 예제를 한번 살펴보자.
+  루스(Loose) 인덱스 스캔 방식은 인덱스의 레코드를 건너뛰면서 필요한 부분만 읽어서 가져오는의미하는데,
+  옵티마이저가 루스 인덱스 스캔을 사용할 때는 실행 계획의 Extra 칼럼에 Tsing intefor group-by" 코멘트가 표시된다.
+  루스 인덱스 스캔을 사용하는 다음 예제를 한번 살펴보자.
 
-mysql> EXPLAIN SELECT emp_no FROM salaries WHERE from_date='1985-03-01' GROUP BY emp_no;
+  mysql> EXPLAIN SELECT emp_no FROM salaries WHERE from_date='1985-03-01' GROUP BY emp_no;
 
-salaries 테이블의 인덱스는 (emp_no, from_date)로 생성돼 있으므로 위의 쿼리 문장에서 WHERE인덱스 레인지 스캔 접근 방식으로 이용할 수 없는 쿼리다. 하지만 이 쿼리의 실행 계획은 다음과인덱스 레인지 스캔(range 타입)을 이용했으며, Extra 칼럼의 메시지를 보면 GROUP BY 처리까지스를 사용했다는 것을 알 수 있다.
+  salaries 테이블의 인덱스는 (emp_no, from_date)로 생성돼 있으므로
+  위의 쿼리 문장에서 WHERE인덱스 레인지 스캔 접근 방식으로 이용할 수 없는 쿼리다.
+  하지만 이 쿼리의 실행 계획은 다음과인덱스 레인지 스캔(range 타입)을 이용했으며,
+  Extra 칼럼의 메시지를 보면 GROUP BY 처리까지스를 사용했다는 것을 알 수 있다.
 
-+{ id { table { type key | Extra +----+ 1 | salaries { range | PRIMARY | Using where; Using index for group-by | +---
+  +{ id { table { type key | Extra +----+ 1 | salaries { range | PRIMARY | Using where; Using index for group-by | +---
 
   306 ================================================================================================================================
 
+  MySQL 서버가 이 쿼리를 어떻게 실행했는지 순서대로 하나씩 살펴보자.
+  
+  1. (emp_no, from_date) 인덱스를 차례대로 스캔하면서 emp_no의 첫 번째 유일한 값그룹 키) "10001"을 찾아낸다.
+  2. (emp_no, from_date) 인덱스에서 emp_no가 '10001'인 것 중에서 from_date 값이 ‘1985-03-01'인 레코드만 가져온다.
+     이 검색 방법은 1번 단계에서 알아낸 '10001' 값과 쿼리의 WHERE 절에 사용된 "from_date= '1985-3301" 조건을 합쳐서 
+     "emp_no=10001 AND from_date='1985-03-01 " 조건으로 (emp_no, from_date) 인덱스를 검색하는 것과 거의 흡사하다.
+  3. (emp_no, from_date) 인덱스에서 emp_no의 그다음 유니크한(그룹 키) 값을 가져온다.
+  4. 3번 단계에서 결과가 더 없으면 처리를 종료하고, 
+     결과가 있다면 2번 과정으로 돌아가서 반복 수행한다.
 
-MySQL 서버가 이 쿼리를 어떻게 실행했는지 순서대로 하나씩 살펴보자.
-
-1. (emp_no, from_date) 인덱스를 차례대로 스캔하면서 emp_no의 첫 번째 유일한 값그룹 키) "10001"을 찾아낸다.
-
-2. (emp_no, from_date) 인덱스에서 emp_no가 '10001'인 것 중에서 from_date 값이 ‘1985-03-01'인 레코드만 가져온다. 이 검색 방법은 1번 단계에서 알아낸 '10001' 값과 쿼리의 WHERE 절에 사용된 "from_date= '1985-3301" 조건을 합쳐서 "emp_no=10001 AND from_date='1985-03-01 " 조건으로 (emp_no, from_date) 인덱스를 검색하는 것과 거의 흡사하다.
-
-3. (emp_no, from_date) 인덱스에서 emp_no의 그다음 유니크한(그룹 키) 값을 가져온다.
-
-4. 3번 단계에서 결과가 더 없으면 처리를 종료하고, 결과가 있다면 2번 과정으로 돌아가서
-
-반복 수행한다.
-
-이 예제가 잘 이해되지 않는다면 10.3.12.24.2절 ‘루스 인덱스 스캔을 통한 GROUP BY 처리의 내용을 함께 참조하자. MySQL의 루스 인덱스 스캔 방식은 단일 테이블에 대해 수행되는 GROUP BY 처리에만 사용할 수 있다. 또한 프리픽스 인덱스(Prefix index, 칼럼값의 앞쪽 일부만으로 생성된 인덱스)는 루스 인덱스 스캔을 사용할 수 없다. 인덱스 레인지 스캔에서는 유니크한 값의 수가 많을수록 성능이 향상되는 반면 루스 인덱스 스캔에서는 인덱스의 유니크한 값의 수가 적을수록 성능이 향상된다. 즉, 루스 인덱스 스캔은 분포도가 좋지 않은 인덱스일수록 더 빠른 결과를 만들어낸다. 루스 인덱스 스캔으로 처리되는 쿼리에서는 별도의 임시 테이블이 필요하지 않다.
-
-루스 인덱스 스캔이 사용될 수 있을지 없을지 판단하는 것은 WHERE 절의 조건이나 ORDER BY 절이 인덱스를 사용할 수 있을지 없을지 판단하는 것보다는 더 어렵다. 여기서는 여러 패턴의 쿼리를 살펴보고, 루스 인덱스 스캔을 사용할 수 있는지 없는지 판별하는 연습을 해보자. 우선, (coll, col2, col3) 칼럼으로 생성된 tb_test 테이블을 가정해보자. 다음의 쿼리들은 루스 인덱스 스캔을 사용할 수 있는 쿼리다. 쿼리의 패턴을 보고 어떻게 사용할 수 있는지를 생각해 보자.
-
-SELECT coll, col2 FROM tb_test GROUP BY coli, col2; SELECT DISTINCT coli, col2 FROM tb_test; SELECT col1, MIN(col2) FROM tb_test GROUP BY coll; SELECT coli, col2 FROM tb_test WHERE coll < const GROUP BY coli, col2; SELECT MAX(col3), MIN(col3), Col1, col2 FROM tb_test WHERE col2 > Const GROUP BY Coll, col2; SELECT col2 FROM tb_test WHERE coll (const GROUP BY coli, col2; SELECT coll, col2 FROM tb_test WHERE col3 = const GROUP BY coli, col2;
-
-09 옵티마이저와 친트
+  이 예제가 잘 이해되지 않는다면 10.3.12.24.2절 ‘루스 인덱스 스캔을 통한 GROUP BY 처리의 내용을 함께 참조하자.
+  MySQL의 루스 인덱스 스캔 방식은 단일 테이블에 대해 수행되는 GROUP BY 처리에만 사용할 수 있다.
+  또한 프리픽스 인덱스(Prefix index, 칼럼값의 앞쪽 일부만으로 생성된 인덱스)는 루스 인덱스 스캔을 사용할 수 없다.
+  인덱스 레인지 스캔에서는 유니크한 값의 수가 많을수록 성능이 향상되는 반면 루스 인덱스 스캔에서는 인덱스의 유니크한 값의 수가 적을수록 성능이 향상된다.
+  즉, 루스 인덱스 스캔은 분포도가 좋지 않은 인덱스일수록 더 빠른 결과를 만들어낸다.
+  루스 인덱스 스캔으로 처리되는 쿼리에서는 별도의 임시 테이블이 필요하지 않다.
+  
+  루스 인덱스 스캔이 사용될 수 있을지 없을지 판단하는 것은 WHERE 절의 조건이나 
+  ORDER BY 절이 인덱스를 사용할 수 있을지 없을지 판단하는 것보다는 더 어렵다.
+  여기서는 여러 패턴의 쿼리를 살펴보고,
+  루스 인덱스 스캔을 사용할 수 있는지 없는지 판별하는 연습을 해보자.
+  우선, (coll, col2, col3) 칼럼으로 생성된 tb_test 테이블을 가정해보자.
+  다음의 쿼리들은 루스 인덱스 스캔을 사용할 수 있는 쿼리다. 쿼리의 패턴을 보고 어떻게 사용할 수 있는지를 생각해 보자.
+  
+  SELECT coll
+       , col2 
+    FROM tb_test 
+   GROUP BY coli
+          , col2
+  ; 
+  SELECT DISTINCT 
+         coli
+       , col2 
+    FROM tb_test
+  ; 
+  SELECT col1
+       , MIN(col2) 
+    FROM tb_test 
+   GROUP BY coll
+  ; 
+  SELECT coli
+       , col2 
+    FROM tb_test 
+   WHERE coll < const 
+   GROUP BY coli
+          , col2
+  ; 
+  SELECT MAX(col3)
+       , MIN(col3)
+       , Col1
+       , col2 
+    FROM tb_test 
+   WHERE col2 > Const 
+   GROUP BY Coll
+          , col2
+   ; 
+   SELECT col2 
+     FROM tb_test 
+    WHERE coll < const 
+    GROUP BY coli
+           , col2
+   ; 
+   SELECT coll
+        , col2 
+     FROM tb_test 
+    WHERE col3 = const 
+    GROUP BY coli
+           , col2
+   ;
 
   307 ================================================================================================================================
 
-
-다음 쿼리는 루스 인덱스 스캔을 사용할 수 없는 쿼리 패턴이다.
-
-// MIN()과 MAX() 이외의 집합 함수가 사용됐기 때문에 루스 인덱스 스캔은 사용 불가 SELECT coli, SUM(co12) FROM tb_test GROUP BY coll;
-
-// GROUP BY에 사용된 칼럼이 인덱스 구성 칼럼의 왼쪽부터 일치하지 않기 때문에 사용 불가 SELECT coll, col2 FROM tb_test GROUP BY col2, col3;
-
-// SELECT 절의 칼럼이 GROUP BY와 일치하지 않기 때문에 사용 불가 SELECT coli, col3 FROM tb_test GROUP BY coli, col2;
-
-참고 MySQL 8.0 버전부터는 루스 인덱스 스캔과 동일한 방식으로 작동하는 인덱스 스킵 스캔(Index Skip Sta 최적화도 도입됐다. MySQL 8.0 이전 버전까지는 GROUP BY 절의 처리를 위해서만 루스 인덱스 스캔이 사용되다 MySQL 8.0 버전부터는 인덱스 스킵 스캔이 도입되면서 옵티마이저가 쿼리에서 필요로 하는 레코드를 검색하는 트까지 루스 인덱스 스캔 방식으로 최적화가 가능해졌다. 인덱스 스킵 스캔 또한 루스 인덱스 스캔과 마찬가지로 조누락된 인덱스의 선행 칼럼이 유니크한 값을 많이 가질수록 쿼리 처리 성능이 떨어지게 된다. 그래서 인덱스 스킵 스에서도 선행 칼럼의 유니크한 값의 개수가 많으면 인덱스 스킵 스캔 최적화를 사용하지 않게 된다.
+  다음 쿼리는 루스 인덱스 스캔을 사용할 수 없는 쿼리 패턴이다.
+  
+  -- // MIN()과 MAX() 이외의 집합 함수가 사용됐기 때문에 루스 인덱스 스캔은 사용 불가 
+  SELECT coli, SUM(co12) FROM tb_test GROUP BY coll;
+  
+  -- // GROUP BY에 사용된 칼럼이 인덱스 구성 칼럼의 왼쪽부터 일치하지 않기 때문에 사용 불가 
+  SELECT coll, col2 FROM tb_test GROUP BY col2, col3;
+  
+  -- // SELECT 절의 칼럼이 GROUP BY와 일치하지 않기 때문에 사용 불가 
+  SELECT coli, col3 FROM tb_test GROUP BY coli, col2;
+  
+  참고 : MySQL 8.0 버전부터는 루스 인덱스 스캔과 동일한 방식으로 작동하는 인덱스 스킵 스캔(Index Skip Sta 최적화도 도입됐다.
+         MySQL 8.0 이전 버전까지는 GROUP BY 절의 처리를 위해서만 루스 인덱스 스캔이 사용되다 
+         MySQL 8.0 버전부터는 인덱스 스킵 스캔이 도입되면서 옵티마이저가 쿼리에서 
+         필요로 하는 레코드를 검색하는 트까지 루스 인덱스 스캔 방식으로 최적화가 가능해졌다.
+         인덱스 스킵 스캔 또한 루스 인덱스 스캔과 마찬가지로 조누락된 인덱스의 선행 칼럼이 
+         유니크한 값을 많이 가질수록 쿼리 처리 성능이 떨어지게 된다.
+         그래서 인덱스 스킵 스에서도 선행 칼럼의 유니크한 값의 개수가 많으면 인덱스 스킵 스캔 최적화를 사용하지 않게 된다.
 
 9.2.4.3 임시 테이블을 사용하는 GROUP BY
 
-GROUP BY의 기준 칼럼이 드라이빙 테이블에 있는 드리븐 테이블에 있는 관계없이 인덱스를 전혀 사는지 못할 때는 이 방식으로 처리된다. 다음 쿼리를 잠깐 살펴보자.
-
-mysql> EXPLAIN SELECT e.last_name, AVG(s.salary) FROM employees e, salaries s WHERE S. emp_no=e.emp_no GROUP BY e.last_name;
-
-99이 쿼리의 실행 계획에서는 Extra 칼럼에 "Using temporary" 메시지가 표시됐다. 이 실행 임시 테이블이 사용된 것은 employees 테이블을 풀 스캔(ALL)하기 때문이 아니라 인덱스를 전혀 사는 수 없는 GROUP BY이기 때문이다.
-
-+-- { id { table { type { key | rows | Extra
+  GROUP BY의 기준 칼럼이 드라이빙 테이블에 있는 드리븐 테이블에 있는 관계없이 인덱스를 전혀 사는지 못할 때는 이 방식으로 처리된다. 다음 쿼리를 잠깐 살펴보자.
+  
+  mysql> EXPLAIN SELECT e.last_name, AVG(s.salary) FROM employees e, salaries s WHERE S. emp_no=e.emp_no GROUP BY e.last_name;
+  
+  99이 쿼리의 실행 계획에서는 Extra 칼럼에 "Using temporary" 메시지가 표시됐다. 이 실행 임시 테이블이 사용된 것은 employees 테이블을 풀 스캔(ALL)하기 때문이 아니라 인덱스를 전혀 사는 수 없는 GROUP BY이기 때문이다.
+  
+  +-- { id { table { type { key | rows | Extra
 
   308 ================================================================================================================================
 
-
-+----+ 300584 | Using temporary 1 1le | 11s | ALL | NULL { ref | PRIMARY | 10 | NULL +----+
-
-여기서 한 가지 주의 깊게 살펴봐야 할 부분은 실행 계획의 Extra 칼럼에 Tsing filesor"는 표시도 지 않고 "Using temporary"만 표시됐다는 것이다. MySQL 8.0 이전 버전까지는 GROUP B가 사용된 춰리는 그루핑되는 칼럼을 기준으로 묵시적인 정렬까지 함께 수행했다. 그래서 위 예제 리어 서와같이 GROUP BY는 있지만 ORDER BY 절이 없는 쿼리에 대해서는 기본적으로 그루핑 칼럼인 last_ree 칼금으로 정렬된 결과를 반환했다. 하지만 MySQL 8.0 버전부터는 이 같은 묵시적인 정렬은 더 이상 실행도 지 않게 바뀌었다.
-
-MySQL 8.0에서는 GROUP BY가 필요한 경우 내부적으로 GROUP BY 절의 칼럼들로 구성된 유니크 인덱스를 가진 임시 테이블을 만들어서 중복 제거와 집합 함수 연산을 수행한다. 즉 위의 쿼리를 처리하기 위해 MySQL 서버는 다음과 같은 임시 테이블을 생성한다. 그리고 조인의 결과를 한 건씩 가져와 임시 테이블에서 중복 체크를 하면서 INSERT 또는 UPDATE를 실행한다. 즉 별도의 정렬 작업 없이 GROUP SY 가처리된다.
-
-CREATE TEMPORARY TABLE ( last_name VARCHAR(16), salary INT, UNIQUE INDEX ux_lastname (last_name) );
-
-하지만 MySQL 8.0에서도 GROUP BY와 ORDER BY가 같이 사용되면 명시적으로 정렬 작업을 실행한다. 다음은 동일한 쿼리에 ORDER BY 절을 추가한 예제인데, 이 쿼리의 실행 계획에서 Extra 칼럼에 Usingtemporary"와 함께 "Using filesort"가 표시된 것을 확인할 수 있다.
-
-mysql> EXPLAIN SELECT e. last_name, AVG(s.salary) FROM employees e, salaries s WHERE S.emp_no=e.emp_no GROUP BY e.last_name ORDER BY e.last_name;
-
-09 옵티마 트
+  +----+ 300584 | Using temporary 1 1le | 11s | ALL | NULL { ref | PRIMARY | 10 | NULL +----+
+  
+  여기서 한 가지 주의 깊게 살펴봐야 할 부분은 실행 계획의 Extra 칼럼에 Tsing filesor"는 표시도 지 않고 "Using temporary"만 표시됐다는 것이다. MySQL 8.0 이전 버전까지는 GROUP B가 사용된 춰리는 그루핑되는 칼럼을 기준으로 묵시적인 정렬까지 함께 수행했다. 그래서 위 예제 리어 서와같이 GROUP BY는 있지만 ORDER BY 절이 없는 쿼리에 대해서는 기본적으로 그루핑 칼럼인 last_ree 칼금으로 정렬된 결과를 반환했다. 하지만 MySQL 8.0 버전부터는 이 같은 묵시적인 정렬은 더 이상 실행도 지 않게 바뀌었다.
+  
+  MySQL 8.0에서는 GROUP BY가 필요한 경우 내부적으로 GROUP BY 절의 칼럼들로 구성된 유니크 인덱스를 가진 임시 테이블을 만들어서 중복 제거와 집합 함수 연산을 수행한다. 즉 위의 쿼리를 처리하기 위해 MySQL 서버는 다음과 같은 임시 테이블을 생성한다. 그리고 조인의 결과를 한 건씩 가져와 임시 테이블에서 중복 체크를 하면서 INSERT 또는 UPDATE를 실행한다. 즉 별도의 정렬 작업 없이 GROUP SY 가처리된다.
+  
+  CREATE TEMPORARY TABLE ( last_name VARCHAR(16), salary INT, UNIQUE INDEX ux_lastname (last_name) );
+  
+  하지만 MySQL 8.0에서도 GROUP BY와 ORDER BY가 같이 사용되면 명시적으로 정렬 작업을 실행한다. 다음은 동일한 쿼리에 ORDER BY 절을 추가한 예제인데, 이 쿼리의 실행 계획에서 Extra 칼럼에 Usingtemporary"와 함께 "Using filesort"가 표시된 것을 확인할 수 있다.
+  
+  mysql> EXPLAIN SELECT e. last_name, AVG(s.salary) FROM employees e, salaries s WHERE S.emp_no=e.emp_no GROUP BY e.last_name ORDER BY e.last_name;
 
   309 ================================================================================================================================
 
-
-{id table type key I rows | Extra +-- | 1le ALL NULL | 300584 | Using temporary; Using filesort | { ref { PRIMARY | 10 | NULL | 1|s
-
-참고MySQL 5.7 버전까지는 GROUP BY가 사용되면 자동으로 그루핑 칼럼을 기준으로 정렬이 수행됐는데, 정렬이 필요치 않은 경우라면 다음 쿼리와 같이 "ORDER BY NULL"을 추가로 사용할 것을 권장했다. "ORDER BY NULL"이 사용되면 MySQL 서버는 불필요한 추가 정렬 작업을 수행하지 않으므로 크진 않지만 성능 향상을 볼 수 있었다.
-
-SELECT *
-
-FROM employees GROUP BY last_name ORDER BY NULL;
-
-하지만 MySQL 8.0 버전부터는 GROUP BY를 사용하더라도 묵시적인 정렬이 수행되지 않기 때문에 정렬된 결과가 될요치 않은 경우 굳이 GROUP BY 절 뒤에 "ORDER BY NULL" 구문을 추가하지 않아도 된다.
+  {id table type key I rows | Extra +-- | 1le ALL NULL | 300584 | Using temporary; Using filesort | { ref { PRIMARY | 10 | NULL | 1|s
+  
+  참고MySQL 5.7 버전까지는 GROUP BY가 사용되면 자동으로 그루핑 칼럼을 기준으로 정렬이 수행됐는데, 정렬이 필요치 않은 경우라면 다음 쿼리와 같이 "ORDER BY NULL"을 추가로 사용할 것을 권장했다. "ORDER BY NULL"이 사용되면 MySQL 서버는 불필요한 추가 정렬 작업을 수행하지 않으므로 크진 않지만 성능 향상을 볼 수 있었다.
+  
+  SELECT *
+  
+  FROM employees GROUP BY last_name ORDER BY NULL;
+  
+  하지만 MySQL 8.0 버전부터는 GROUP BY를 사용하더라도 묵시적인 정렬이 수행되지 않기 때문에 정렬된 결과가 될요치 않은 경우 굳이 GROUP BY 절 뒤에 "ORDER BY NULL" 구문을 추가하지 않아도 된다.
 
 9.2.5 DISTINCT 처리
 
-특정 칼럼의 유니크한 값만 조회하려면 SELECT 쿼리에 DISTINCT를 사용한다. DISTINCT는 MIN(), VAX() 도는 COUNT() 같은 집합 함수와 함께 사용되는 경우와 집합 함수가 없는 경우의 2가지로 구분해서 살펴보자. 이렇게 구분한 이유는 각 경우에 DISTINCT 키워드가 영향을 미치는 범위가 달라지기 때문이다. 그리고 집합 함수와 같이 DISTINCT가 사용되는 쿼리의 실행 계획에서 DISTINCT 처리가 인덱스를 사용하지할 때는 항상 임시 테이블이 필요하다. 하지만 실행 계획의 Extra 칼럼에는 "Using temporary" 더 시지가 출력되지 않는다.
+  특정 칼럼의 유니크한 값만 조회하려면 SELECT 쿼리에 DISTINCT를 사용한다. DISTINCT는 MIN(), VAX() 도는 COUNT() 같은 집합 함수와 함께 사용되는 경우와 집합 함수가 없는 경우의 2가지로 구분해서 살펴보자. 이렇게 구분한 이유는 각 경우에 DISTINCT 키워드가 영향을 미치는 범위가 달라지기 때문이다. 그리고 집합 함수와 같이 DISTINCT가 사용되는 쿼리의 실행 계획에서 DISTINCT 처리가 인덱스를 사용하지할 때는 항상 임시 테이블이 필요하다. 하지만 실행 계획의 Extra 칼럼에는 "Using temporary" 더 시지가 출력되지 않는다.
 
 9.2.5.1 SELECT DISTINCT ...
 
-단순히 SELECT되는 레코드 중에서 유니크한 레코드만 가져오고자 하면 SELECT DISTINCT 형태의 쿼리 문장을 사용한다. 이 경우에는 GROUP BY와 동일한 방식으로 처리된다. 특히 MySQL 8.0 버전부터는 800BY를 수행하는 쿼리에 ORDER BY 절이 없으면 정렬을 사용하지 않기 때문에 다음의 두 쿼리는 내부적으로 같은 작업을 수행한다.
+  단순히 SELECT되는 레코드 중에서 유니크한 레코드만 가져오고자 하면 SELECT DISTINCT 형태의 쿼리 문장을 사용한다. 이 경우에는 GROUP BY와 동일한 방식으로 처리된다. 특히 MySQL 8.0 버전부터는 800BY를 수행하는 쿼리에 ORDER BY 절이 없으면 정렬을 사용하지 않기 때문에 다음의 두 쿼리는 내부적으로 같은 작업을 수행한다.
 
   310 ================================================================================================================================
 
-
-mysql> SELECT DISTINCT emp_no FROM salaries; mysql> SELECT emp_no FROM salaries GROUP BY emp_no;
-
-DISTINCT를 사용할 때 자주 실수하는 것이 있다. DISTINCT는 SELECT하는 레코드 투플 를 유니크하게 SELECT하는 것이지, 특정 칼럼만 유니크하게 조회하는 것이 아니다. 즉, 다음 쿼리에서 SELECT 하는 결과는 first_name만 유니크한 것을 가져오는 것이 아니라 (first_name, last_nare) 조합 전체가 유니크한 레코드를 가져오는 것이다.
-
-mysql> SELECT DISTINCT first_name, last_name FROM employees;
-
-가끔 DISTINCT를 다음과 같이 함수처럼 사용하는 사람도 있다.
-
-mysql> SELECT DISTINCT(first_name), last_name FROM employees;
-
-위의 쿼리는 얼핏 보면 first_name만 유니크하게 조회하고 last_name은 그냥 DISTINCT가 없을 때와 동일하게 조회하는 쿼리처럼 보인다. 그리고 실제로 상당히 그럴듯하게 아무런 에러 없이 실행되기 때문에 쉽게 실수할 수 있는 부분이다. 하지만 MySQL 서버는 DISTINCT 뒤의 괄호를 그냥 의미 없이 사용된 말호로 해석하고 제거해 버린다. DISTINCT는 함수가 아니므로 그 뒤의 괄호는 의미가 없는 것이다.
-
-mysql> SELECT DISTINCT first_name, last_name FROM employees;
-
-SELECT 절에 사용된 DISTINCT 키워드는 조회되는 모든 칼럼에 영향을 미친다. 절대로 SELECT하는 여러 칼럼 중에서 일부 칼럼만 유니크하게 조회하는 것은 아니다. 단, 이어서 설명할 집합 함수와 함께 사용된 DISTINCT의 경우는 조금 다르다.
+  mysql> SELECT DISTINCT emp_no FROM salaries; mysql> SELECT emp_no FROM salaries GROUP BY emp_no;
+  
+  DISTINCT를 사용할 때 자주 실수하는 것이 있다. DISTINCT는 SELECT하는 레코드 투플 를 유니크하게 SELECT하는 것이지, 특정 칼럼만 유니크하게 조회하는 것이 아니다. 즉, 다음 쿼리에서 SELECT 하는 결과는 first_name만 유니크한 것을 가져오는 것이 아니라 (first_name, last_nare) 조합 전체가 유니크한 레코드를 가져오는 것이다.
+  
+  mysql> SELECT DISTINCT first_name, last_name FROM employees;
+  
+  가끔 DISTINCT를 다음과 같이 함수처럼 사용하는 사람도 있다.
+  
+  mysql> SELECT DISTINCT(first_name), last_name FROM employees;
+  
+  위의 쿼리는 얼핏 보면 first_name만 유니크하게 조회하고 last_name은 그냥 DISTINCT가 없을 때와 동일하게 조회하는 쿼리처럼 보인다. 그리고 실제로 상당히 그럴듯하게 아무런 에러 없이 실행되기 때문에 쉽게 실수할 수 있는 부분이다. 하지만 MySQL 서버는 DISTINCT 뒤의 괄호를 그냥 의미 없이 사용된 말호로 해석하고 제거해 버린다. DISTINCT는 함수가 아니므로 그 뒤의 괄호는 의미가 없는 것이다.
+  
+  mysql> SELECT DISTINCT first_name, last_name FROM employees;
+  
+  SELECT 절에 사용된 DISTINCT 키워드는 조회되는 모든 칼럼에 영향을 미친다. 절대로 SELECT하는 여러 칼럼 중에서 일부 칼럼만 유니크하게 조회하는 것은 아니다. 단, 이어서 설명할 집합 함수와 함께 사용된 DISTINCT의 경우는 조금 다르다.
 
 9.2.5.2 집합 함수와 함께 사용된 DISTINCT
 
-COUNT() 또는 MIN(), MAX() 같은 집합 함수 내에서 DISTINCT 키워드가 사용될 수 있는데, 이 경우에는 이반적으로 SELECT DISTINCT와 다른 형태로 해석된다. 집합 함수가 없는 SELECT 쿼리에서 DISTINT는 회하는 모든 칼럼의 조합이 유니크한 것들만 가져온다. 하지만 집합 함수 내에서 사용된 DISTINCT는 14합 함수의 인자로 전달된 칼럼값이 유니크한 것들을 가져온다.
-
-mysql> EXPLAIN SELECT COUNT(DISTINCT s.salary) FROM employees e, salaries s
+  COUNT() 또는 MIN(), MAX() 같은 집합 함수 내에서 DISTINCT 키워드가 사용될 수 있는데, 이 경우에는 이반적으로 SELECT DISTINCT와 다른 형태로 해석된다. 집합 함수가 없는 SELECT 쿼리에서 DISTINT는 회하는 모든 칼럼의 조합이 유니크한 것들만 가져온다. 하지만 집합 함수 내에서 사용된 DISTINCT는 14합 함수의 인자로 전달된 칼럼값이 유니크한 것들을 가져온다.
+  
+  mysql> EXPLAIN SELECT COUNT(DISTINCT s.salary) FROM employees e, salaries s
 
   311 ================================================================================================================================
 
-
-WHERE e, emp_no=s. emp_no AND e.emp_no BETWEEN 100001 AND 100100;
-
-이 쿼리는 내부적으로는 "COUNT(DISTINCT s.salary)"를 처리하기 위해 임시 테이블을 사용한다. .이 쿼리의 실행 계획에는 임시 테이블을 사용한다는 메시지는 표시되지 않는다. 이는 버그처럼 보만 지금까지 모든 버전의 MySQL 서버에서 보여주는 실행 계획에서 "Using temporary"를 표시는않고 있다.
-
-{ id { table { type { key rows Extra +----+ 1le 100 Using where; Using index | { range | PRIMARY { ref | PRIMARY { 1 | s 10 NULL
-
-위 쿼리의 경우에는 employees 테이블과 salaries 테이블을 조인한 결과에서 salary 칼럼의 만하기 위한 임시 테이블을 만들어서 사용한다. 이때 임시 테이블의 salary 칼럼에는 유니크 인덱스 |성되기 때문에 레코드 건수가 많아진다면 상당히 느려질 수 있는 형태의 쿼리다.
-
-위의 쿼리에 COUNT(DISTINCT ...)를 하나 더 추가해서 다음과 같이 변경해보자. COUNT() 함수가 두 년 ·용된 다음 쿼리의 실행 계획은 위의 쿼리와 똑같이 표시된다. 하지만 다음 쿼리를 처리하려면 s. sale칼럼의 값을 저장하는 임시 테이블과 e.last_name 칼럼의 값을 저장하는 또 다른 임시 테이블이 필요.므로 전체적으로 2개의 임시 테이블을 사용한다.
-
-mysql> SELECT COUNT(DISTINCT S. salary), COUNT(DISTINCT e.last_name) FROM employees e, salaries s WHERE e. emp_no=s. emp_no AND e. emp_no BETWEEN 100001 AND 100100;
-
-위의 쿼리는 DISTINCT 처리를 위해 인덱스를 이용할 수 없어서 임시 테이블이 필요했다. 하지만 다음리와 같이 인덱스된 칼럼에 대해 DISTINCT 처리를 수행할 때는 인덱스를 풀 스캔하거나 레인지 스판면서 임시 테이블 없이 최적화된 처리를 수행할 수 있다.
+  WHERE e, emp_no=s. emp_no AND e.emp_no BETWEEN 100001 AND 100100;
+  
+  이 쿼리는 내부적으로는 "COUNT(DISTINCT s.salary)"를 처리하기 위해 임시 테이블을 사용한다. .이 쿼리의 실행 계획에는 임시 테이블을 사용한다는 메시지는 표시되지 않는다. 이는 버그처럼 보만 지금까지 모든 버전의 MySQL 서버에서 보여주는 실행 계획에서 "Using temporary"를 표시는않고 있다.
+  
+  { id { table { type { key rows Extra +----+ 1le 100 Using where; Using index | { range | PRIMARY { ref | PRIMARY { 1 | s 10 NULL
+  
+  위 쿼리의 경우에는 employees 테이블과 salaries 테이블을 조인한 결과에서 salary 칼럼의 만하기 위한 임시 테이블을 만들어서 사용한다. 이때 임시 테이블의 salary 칼럼에는 유니크 인덱스 |성되기 때문에 레코드 건수가 많아진다면 상당히 느려질 수 있는 형태의 쿼리다.
+  
+  위의 쿼리에 COUNT(DISTINCT ...)를 하나 더 추가해서 다음과 같이 변경해보자. COUNT() 함수가 두 년 ·용된 다음 쿼리의 실행 계획은 위의 쿼리와 똑같이 표시된다. 하지만 다음 쿼리를 처리하려면 s. sale칼럼의 값을 저장하는 임시 테이블과 e.last_name 칼럼의 값을 저장하는 또 다른 임시 테이블이 필요.므로 전체적으로 2개의 임시 테이블을 사용한다.
+  
+  mysql> SELECT COUNT(DISTINCT S. salary), COUNT(DISTINCT e.last_name) FROM employees e, salaries s WHERE e. emp_no=s. emp_no AND e. emp_no BETWEEN 100001 AND 100100;
+  
+  위의 쿼리는 DISTINCT 처리를 위해 인덱스를 이용할 수 없어서 임시 테이블이 필요했다. 하지만 다음리와 같이 인덱스된 칼럼에 대해 DISTINCT 처리를 수행할 때는 인덱스를 풀 스캔하거나 레인지 스판면서 임시 테이블 없이 최적화된 처리를 수행할 수 있다.
 
   312 ================================================================================================================================
 
-
-mysql> SELECT COUNT(DISTINCT emp_no) FROM employees; mysql> SELECT COUNT(DISTINCT emp_no) FROM dept_emp GROUP BY dept_no;
-
-+ { id | table { type { key rows { Extra +-- | 1 | dept_emp | index | PRIMARY | 331143 | Using index |
-
-|주의DISTINCT가 집합 함수 없이 사용된 경우와 집합 함수 내에서 사용된 경우 쿼리의 결과가 조금씩 달라지기 때문에 그 차이를 정확하게 이해해야 한다. 다음 3개 쿼리의 차이를 잘 기억해두자.
-
-mysql> SELECT DISTINCT first_name, last_name FROM employees WHERE emp_no BETWEEN 10001 AND 10200; mysql> SELECT COUNT(DISTINCT first_name), COUNT(DISTINCT last_name) FROM employees WHERE emp_no BETWEEN 10001 AND 10200; mysql> SELECT COUNT(DISTINCT first_name, last_name) FROM employees WHERE emp_no BETWEEN 10001 AND 10200;
+  mysql> SELECT COUNT(DISTINCT emp_no) FROM employees; mysql> SELECT COUNT(DISTINCT emp_no) FROM dept_emp GROUP BY dept_no;
+  
+  + { id | table { type { key rows { Extra +-- | 1 | dept_emp | index | PRIMARY | 331143 | Using index |
+  
+  |주의DISTINCT가 집합 함수 없이 사용된 경우와 집합 함수 내에서 사용된 경우 쿼리의 결과가 조금씩 달라지기 때문에 그 차이를 정확하게 이해해야 한다. 다음 3개 쿼리의 차이를 잘 기억해두자.
+  
+  mysql> SELECT DISTINCT first_name, last_name FROM employees WHERE emp_no BETWEEN 10001 AND 10200; mysql> SELECT COUNT(DISTINCT first_name), COUNT(DISTINCT last_name) FROM employees WHERE emp_no BETWEEN 10001 AND 10200; mysql> SELECT COUNT(DISTINCT first_name, last_name) FROM employees WHERE emp_no BETWEEN 10001 AND 10200;
 
 9.2.6 내부 임시 테이블 활용
 
-MySQL 엔진이 스토리지 엔진으로부터 받아온 레코드를 정렬하거나 그루핑할 때는 내부적인 임시 테이블(Internal temporary table)을 사용한다. "내부적(Internal)"이라는 단어가 포함된 이유는 여기서이야기하는 임시 테이블은 "CREATE TEMPORARY TABLE" 명령으로 만든 임시 테이블과는 다르기 때문이다.일반적으로 MySQL 엔진이 사용하는 임시 테이블은 처음에는 메모리에 생성됐다가 테이블의 크기가커지면 디스크로 옮겨진다. 물론 특정 예외 케이스에는 메모리를 거치지 않고 바로 디스크어 임시 테이블이 만들어지기도 한다.
-
-ON EN IN ME
+  MySQL 엔진이 스토리지 엔진으로부터 받아온 레코드를 정렬하거나 그루핑할 때는 내부적인 임시 테이블(Internal temporary table)을 사용한다. "내부적(Internal)"이라는 단어가 포함된 이유는 여기서이야기하는 임시 테이블은 "CREATE TEMPORARY TABLE" 명령으로 만든 임시 테이블과는 다르기 때문이다.일반적으로 MySQL 엔진이 사용하는 임시 테이블은 처음에는 메모리에 생성됐다가 테이블의 크기가커지면 디스크로 옮겨진다. 물론 특정 예외 케이스에는 메모리를 거치지 않고 바로 디스크어 임시 테이블이 만들어지기도 한다.
 
   313 ================================================================================================================================
 
-IND
-
-
-MySQL 엔진이 내부적인 가공을 위해 생성하는 임시 테이블은 다른 세션이나 다른 쿼리에서는 볼 소없으며 사용하는 것도 불가능하다. 사용자가 생성한 임시 테이블(CREATE TEMPORARY TABLE)과는 달」부적인 임시 테이블은 쿼리의 처리가 완료되면 자동으로 삭제된다.
+  MySQL 엔진이 내부적인 가공을 위해 생성하는 임시 테이블은 다른 세션이나 다른 쿼리에서는 볼 소없으며 사용하는 것도 불가능하다. 사용자가 생성한 임시 테이블(CREATE TEMPORARY TABLE)과는 달」부적인 임시 테이블은 쿼리의 처리가 완료되면 자동으로 삭제된다.
 
 9.2.6.1 메모리 임시 테이블과 디스크 임시 테이블
 
-MySQL 8.0 이전 버전까지는 원본 테이블의 스토리지 엔진과 관계없이 임시 테이블이 메모리를 할 때는 MEMORY 스토리지 엔진을 사용하며, 디스크에 저장될 때는 MyISAM 스토리지 엔진을 : 한다. 하지만 MySQL 8.0 버전부터는 메모리는 TempTable이라는 스토리지 엔진을 사용하고, 디스크에 저장되는 임시 테이블은 InnoDB 스토리지 엔진을 사용하도록 개선됐다.
+  MySQL 8.0 이전 버전까지는 원본 테이블의 스토리지 엔진과 관계없이 임시 테이블이 메모리를 할 때는 MEMORY 스토리지 엔진을 사용하며, 디스크에 저장될 때는 MyISAM 스토리지 엔진을 : 한다. 하지만 MySQL 8.0 버전부터는 메모리는 TempTable이라는 스토리지 엔진을 사용하고, 디스크에 저장되는 임시 테이블은 InnoDB 스토리지 엔진을 사용하도록 개선됐다.
 
-기존 MEMORY 스토리지 엔진은 VARBINARY나 VARCHAR 같은 가변 길이 타입을 지원하지 못하기에 임시 테이블이 메모리에 만들어지면 가변 길이 타입의 경우 최대 길이만큼 메모리를 할당해서 했다. 이는 메모리 낭비가 심해지는 문제점을 안고 있었다. 그리고 디스크에 임시 테이블이 만들 때 사용되는 MyISAM 스토리지 엔진은 트랜잭션을 지원하지 못한다는 문제점을 안고 있었다. 그러 MySQL 8.0 버전부터는 MEMORY 스토리지 엔진 대신 가변 길이 타입을 지원하는 TempTable 스트리지 엔진이 도입됐으며, MyISAM 스토리지 엔진을 대신해서 트랜잭션 지원 가능한 InnoDB 스트지 엔진(또는 TempTable 스토리지 엔진의 MMAP 파일 버전)이 사용되도록 개선된 것이다.
+  기존 MEMORY 스토리지 엔진은 VARBINARY나 VARCHAR 같은 가변 길이 타입을 지원하지 못하기에 임시 테이블이 메모리에 만들어지면 가변 길이 타입의 경우 최대 길이만큼 메모리를 할당해서 했다. 이는 메모리 낭비가 심해지는 문제점을 안고 있었다. 그리고 디스크에 임시 테이블이 만들 때 사용되는 MyISAM 스토리지 엔진은 트랜잭션을 지원하지 못한다는 문제점을 안고 있었다. 그러 MySQL 8.0 버전부터는 MEMORY 스토리지 엔진 대신 가변 길이 타입을 지원하는 TempTable 스트리지 엔진이 도입됐으며, MyISAM 스토리지 엔진을 대신해서 트랜잭션 지원 가능한 InnoDB 스트지 엔진(또는 TempTable 스토리지 엔진의 MMAP 파일 버전)이 사용되도록 개선된 것이다.
 
-MySQL 8.0 버전부터는 internal_tmp_mem_storage_engine 시스템 변수를 이용해 메모리용 임시 테이블을 MEMORY와 TempTable 중에서 선택할 수 있게 하고 있는데, 기본값은 TempTable이다. 그리고 TempTable이 최대한 사용 가능한 메모리 공간의 크기는 temptable_max_ram 시스템 변수로 제어할 수 있는데, 기본값은 1GB로 설정돼 있다. 임시 테이블의 크기가 1GB보다 커지는 경우 MySQL 서버는 메모리의 임시 테이블을 디스크로 기록하게 되는데, 이때 MySQL 서버는 다음의 2가지 디스크 저장식 중 하나를 선택한다.
+  MySQL 8.0 버전부터는 internal_tmp_mem_storage_engine 시스템 변수를 이용해 메모리용 임시 테이블을 MEMORY와 TempTable 중에서 선택할 수 있게 하고 있는데, 기본값은 TempTable이다. 그리고 TempTable이 최대한 사용 가능한 메모리 공간의 크기는 temptable_max_ram 시스템 변수로 제어할 수 있는데, 기본값은 1GB로 설정돼 있다. 임시 테이블의 크기가 1GB보다 커지는 경우 MySQL 서버는 메모리의 임시 테이블을 디스크로 기록하게 되는데, 이때 MySQL 서버는 다음의 2가지 디스크 저장식 중 하나를 선택한다.
 
-- MMAP 파일로 디스크에 기록
+  - MMAP 파일로 디스크에 기록
 
-- InnoDB 테이블로 기록
+  - InnoDB 테이블로 기록
 
   314 ================================================================================================================================
 
 
-|주의 MySQL 8.0 이전 버전에서는 메모리에 생성되는 내부 임시 테이블의 최대 크기를 아래 2개의 시스템 변수로 설정했다. 하지만 이 두 시스템 변수는 MEMORY 스토리지 엔진을 사용하는 임시 테이블에만 적용되고 TeroTale을 사용하는 경우에는 temptable_max_ram 시스템 변수로 결정된다. 메모리 임시 테이블을 위해서 NEMORY 스토리지 엔진을 사용한다면 다음의 두 시스템 변수도 같이 적절한 값으로 제어하자.
+  주의 MySQL 8.0 이전 버전에서는 메모리에 생성되는 내부 임시 테이블의 최대 크기를 아래 2개의 시스템 변수로 설정했다. 하지만 이 두 시스템 변수는 MEMORY 스토리지 엔진을 사용하는 임시 테이블에만 적용되고 TeroTale을 사용하는 경우에는 temptable_max_ram 시스템 변수로 결정된다. 메모리 임시 테이블을 위해서 NEMORY 스토리지 엔진을 사용한다면 다음의 두 시스템 변수도 같이 적절한 값으로 제어하자.
 
-• tmp_table_size max_heap_table_size
-
-MySQL 서버가 MMAP 파일로 기록할지 InnoDB 테이블로 전환할지는 terotable_use_ao 시스팀 변수로 설정할 수 있는데, 기본값은 ON으로 설정돼 있다. 즉, 메모리의 TenpTable 크기가 1GB를 넘으면 MySQL 서버는 메모리의 'TempTable을 MMAP 파일로 전환하게 된다. 메모리의 TempTable을 MMAP 파일로 전환하는 것은 InnoDB 테이블로 전환하는 것보다 오버헤드가 적기 때문에 terptable_use_mmap 시스템 변수의 기본값이 ON으로 선택된 것이다. 이때 디스크에 생성되는 임시 테이블은 fredir 시스템 변수에 정의된 디렉터리에 저장된다.
-
-주의 MySQL 서버는 디스크의 임시 테이블을 생성할 때, 파일 오픈 후 즉시 파일 삭제를 실행 한다. 그리고 데이터를 저장하기 위해 해당 임시 테이블을 사용한다. 이렇게 함으로써 MySQL 서버가 종료되거나 해당 쿼리가 종료되면 임시 테이블은 즉시 사라지게 보장하는 것이다. 그뿐만 아니라 이렇게 함으로써 MySQL 서버 내부의 다른 스레드 또는 MySQL 서버 외부의 사용자가 해당 임시 테이블을 위한 파일을 변경 및 삭제하거나 볼 수 없게 하는 것이다.
-
-이 같은 이유로 디스크에 저장된 임시 테이블이 저장되는 파일은 운영체제의 "dir" 또는 "Is -al' 같은 명령으로는 확인할 수 없다. 리눅스나 유닉스 계열의 운영체제에서는 "isof -p Spidof mysqld" 명령으로 임시 테이블이 몇개나 사용되는지 정도는 확인할 수 있으나 파일의 상태는 "deleted"로 표시될 것이다. lsof 명령의 결과로 보이는 임시 테이블 파일들이 모두 "deleted" 상태라고 해서 임시 테이블의 사용이 완료된 것이 아니라 사용되는 중이라는 것도 기억해두자.
-
-메모리에 상주하던 임시 테이블이 디스크로 전환되는 경우 MMAP을 사용할지 InnoDB 테이블을 사용할지는 temptable_use_mmap 시스템 변수로 설정한다는 것과 디스크 기반의 임시 테이블로 전환되는 과정을 살펴봤다. 하지만 내부 임시 테이블이 메모리에 생성되지 않고 처음부터 디스크 테이블로 생성되는 경우도 있다. 이 경우에는 internal_tmp_disk_storage_engine 시스템 변수에 설정된 스토리지 선진이 사용된다. internal_tmp_disk_storage_engine 시스템 변수의 기본값은 InnoDB다.
-
-1 파일이 오픈된 상태에서 삭제되면 운영체제는 그 파일을 즉시 삭제하지 않는
-
-대신 운영체제는 파일을 참조하는 프로세스가 모두 없어지면 그대 자동으로 일을 이
-
-09. 옵티마이저와 친트
+  • tmp_table_size max_heap_table_size
+  
+  MySQL 서버가 MMAP 파일로 기록할지 InnoDB 테이블로 전환할지는 terotable_use_ao 시스팀 변수로 설정할 수 있는데, 기본값은 ON으로 설정돼 있다. 즉, 메모리의 TenpTable 크기가 1GB를 넘으면 MySQL 서버는 메모리의 'TempTable을 MMAP 파일로 전환하게 된다. 메모리의 TempTable을 MMAP 파일로 전환하는 것은 InnoDB 테이블로 전환하는 것보다 오버헤드가 적기 때문에 terptable_use_mmap 시스템 변수의 기본값이 ON으로 선택된 것이다. 이때 디스크에 생성되는 임시 테이블은 fredir 시스템 변수에 정의된 디렉터리에 저장된다.
+  
+  주의 MySQL 서버는 디스크의 임시 테이블을 생성할 때, 파일 오픈 후 즉시 파일 삭제를 실행 한다. 그리고 데이터를 저장하기 위해 해당 임시 테이블을 사용한다. 이렇게 함으로써 MySQL 서버가 종료되거나 해당 쿼리가 종료되면 임시 테이블은 즉시 사라지게 보장하는 것이다. 그뿐만 아니라 이렇게 함으로써 MySQL 서버 내부의 다른 스레드 또는 MySQL 서버 외부의 사용자가 해당 임시 테이블을 위한 파일을 변경 및 삭제하거나 볼 수 없게 하는 것이다.
+  
+  이 같은 이유로 디스크에 저장된 임시 테이블이 저장되는 파일은 운영체제의 "dir" 또는 "Is -al' 같은 명령으로는 확인할 수 없다. 리눅스나 유닉스 계열의 운영체제에서는 "isof -p Spidof mysqld" 명령으로 임시 테이블이 몇개나 사용되는지 정도는 확인할 수 있으나 파일의 상태는 "deleted"로 표시될 것이다. lsof 명령의 결과로 보이는 임시 테이블 파일들이 모두 "deleted" 상태라고 해서 임시 테이블의 사용이 완료된 것이 아니라 사용되는 중이라는 것도 기억해두자.
+  
+  메모리에 상주하던 임시 테이블이 디스크로 전환되는 경우 MMAP을 사용할지 InnoDB 테이블을 사용할지는 temptable_use_mmap 시스템 변수로 설정한다는 것과 디스크 기반의 임시 테이블로 전환되는 과정을 살펴봤다. 하지만 내부 임시 테이블이 메모리에 생성되지 않고 처음부터 디스크 테이블로 생성되는 경우도 있다. 이 경우에는 internal_tmp_disk_storage_engine 시스템 변수에 설정된 스토리지 선진이 사용된다. internal_tmp_disk_storage_engine 시스템 변수의 기본값은 InnoDB다.
+  
+  1 파일이 오픈된 상태에서 삭제되면 운영체제는 그 파일을 즉시 삭제하지 않는
+  
+  대신 운영체제는 파일을 참조하는 프로세스가 모두 없어지면 그대 자동으로 일을 이
 
   315 ================================================================================================================================
-
-D
-
 
 2.2.6.2 임시 테이블이 필요한 쿼리
 
